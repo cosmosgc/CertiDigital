@@ -15,6 +15,24 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
+
+                    @auth
+                        <x-nav-link :href="route('students.index')" :active="request()->routeIs('students.*')">
+                            {{ __('Students') }}
+                        </x-nav-link>
+
+                        <x-nav-link :href="route('instructors.index')" :active="request()->routeIs('instructors.*')">
+                            {{ __('Instructors') }}
+                        </x-nav-link>
+
+                        <x-nav-link :href="route('courses.index')" :active="request()->routeIs('courses.*')">
+                            {{ __('Courses') }}
+                        </x-nav-link>
+
+                        <x-nav-link :href="route('certificates.emit')" :active="request()->routeIs('certificates.emit')">
+                            {{ __('Emit Certificate') }}
+                        </x-nav-link>
+                    @endauth
                 </div>
             </div>
 

@@ -1,0 +1,155 @@
+@extends('layouts.app')
+
+@section('content')
+<div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
+        <div class="flex justify-between items-center">
+            <h2 class="text-xl font-semibold">Students</h2>
+            <button id="showCreate" class="px-4 py-2 bg-indigo-600 text-white rounded">New Student</button>
+        </div>
+
+        <div class="mt-4">
+            <table class="w-full table-auto" id="studentsTable">
+                <thead>
+                    <tr class="text-left">
+                        <th class="p-2">ID</th>
+                        <th class="p-2">Name</th>
+                        <th class="p-2">Email</th>
+                        <th class="p-2">Document</th>
+                        <th class="p-2">Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Create/Edit Form -->
+        <div id="formContainer" class="mt-4 hidden">
+            <h3 id="formTitle" class="font-semibold"></h3>
+            <form id="studentForm" class="space-y-4">
+                <input type="hidden" name="id" />
+                <div>
+                    <label class="block text-sm font-medium">Full name</label>
+                    <input name="full_name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Email</label>
+                    <input name="email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Document ID</label>
+                    <input name="document_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                </div>
+                <div class="flex gap-2">
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded">Save</button>
+                    <button type="button" id="cancelBtn" class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+const studentsTableBody = document.querySelector('#studentsTable tbody');
+const formContainer = document.getElementById('formContainer');
+const studentForm = document.getElementById('studentForm');
+const formTitle = document.getElementById('formTitle');
+
+async function fetchStudents() {
+    const res = await fetch('{{ route("api.students.index") }}');
+    const data = await res.json();
+    renderStudents(data.data || data);
+}
+
+function renderStudents(list) {
+    studentsTableBody.innerHTML = '';
+    (list || []).forEach(s => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="p-2">${s.id}</td>
+            <td class="p-2">${s.full_name}</td>
+            <td class="p-2">${s.email}</td>
+            <td class="p-2">${s.document_id || ''}</td>
+            <td class="p-2">
+                <button class="editBtn px-2 py-1 bg-yellow-400 rounded" data-id="${s.id}">Edit</button>
+                <button class="deleteBtn px-2 py-1 bg-red-500 text-white rounded" data-id="${s.id}">Delete</button>
+            </td>
+        `;
+        studentsTableBody.appendChild(tr);
+    });
+}
+
+document.getElementById('showCreate').addEventListener('click', () => {
+    studentForm.reset();
+    studentForm.id.value = '';
+    formTitle.textContent = 'Create Student';
+    formContainer.classList.remove('hidden');
+});
+
+document.getElementById('cancelBtn').addEventListener('click', () => {
+    formContainer.classList.add('hidden');
+});
+
+studentsTableBody.addEventListener('click', async (e) => {
+    if (e.target.classList.contains('editBtn')) {
+        const id = e.target.dataset.id;
+        const res = await fetch(`{{ route("api.students.show", ["student" => "__ID__"]) }}`.replace('__ID__', id));
+        const student = await res.json();
+        studentForm.full_name.value = student.full_name;
+        studentForm.email.value = student.email;
+        studentForm.document_id.value = student.document_id || '';
+        studentForm.id.value = student.id;
+        formTitle.textContent = 'Edit Student';
+        formContainer.classList.remove('hidden');
+    }
+
+    if (e.target.classList.contains('deleteBtn')) {
+        if (!confirm('Delete student?')) return;
+        const id = e.target.dataset.id;
+        await fetch(`{{ route("api.students.destroy", ["student" => "__ID__"]) }}`.replace('__ID__', id), {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': token,
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin'
+        });
+        fetchStudents();
+    }
+});
+
+studentForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const payload = {
+        full_name: studentForm.full_name.value,
+        email: studentForm.email.value,
+        document_id: studentForm.document_id.value || null,
+    };
+
+    const id = studentForm.id.value;
+    const method = id ? 'PUT' : 'POST';
+    const url = id ? `{{ route("api.students.update", ["student" => "__ID__"]) }}`.replace('__ID__', id) : '{{ route("api.students.store") }}';
+
+    const res = await fetch(url, {
+        method,
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token,
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload),
+        credentials: 'same-origin'
+    });
+
+    if (res.ok) {
+        formContainer.classList.add('hidden');
+        fetchStudents();
+    } else {
+        alert('Error saving student');
+    }
+});
+
+fetchStudents();
+</script>
+@endsection
