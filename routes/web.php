@@ -20,7 +20,10 @@ Route::middleware('auth')->group(function () {
     Route::view('/students', 'students.index')->name('students.index');
     Route::view('/instructors', 'instructors.index')->name('instructors.index');
     Route::view('/courses', 'courses.index')->name('courses.index');
+    Route::view('/certificates', 'certificates.index')->name('certificates.index');
     Route::view('/certificates/emit', 'certificates.emit')->name('certificates.emit');
 });
+Route::get('/certificates/{certificate}/print', [\App\Http\Controllers\CertificatePrintController::class, 'show'])->name('certificates.print');
+
 
 require __DIR__.'/auth.php';

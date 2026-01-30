@@ -11,9 +11,23 @@ use Illuminate\Support\Carbon;
 
 class CertificateController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $certificates = Certificate::with(['student', 'course', 'instructor'])->paginate(20);
+        $q = $request->query('q');
+
+        $query = Certificate::with(['student', 'course', 'instructor']);
+
+        if ($q) {
+            $query->where('certificate_code', 'like', "%{$q}%")
+                  ->orWhereHas('student', function ($qBuilder) use ($q) {
+                      $qBuilder->where('full_name', 'like', "%{$q}%");
+                  })
+                  ->orWhereHas('course', function ($qBuilder) use ($q) {
+                      $qBuilder->where('title', 'like', "%{$q}%");
+                  });
+        }
+
+        $certificates = $query->paginate(20);
 
         return response()->json($certificates, Response::HTTP_OK);
     }
@@ -92,9 +106,8 @@ class CertificateController extends Controller
     }
 
     public function getByCode($code)
-    {
+    {   
         $certificate = Certificate::where('certificate_code', $code)->with(['student', 'course', 'instructor', 'verificationLogs'])->first();
-
         if (! $certificate) {
             return response()->json(['message' => 'Certificate not found'], Response::HTTP_NOT_FOUND);
         }
