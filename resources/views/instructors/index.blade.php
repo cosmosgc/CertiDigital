@@ -65,6 +65,7 @@ const instructorsTableBody = document.querySelector('#instructorsTable tbody');
 const formContainer = document.getElementById('formContainer');
 const instructorForm = document.getElementById('instructorForm');
 const formTitle = document.getElementById('formTitle');
+let instructorsDataTable = null;
 
 async function fetchInstructors() {
     const res = await fetch('{{ route("api.instructors.index") }}');
@@ -87,6 +88,11 @@ function renderInstructors(list) {
         `;
         instructorsTableBody.appendChild(tr);
     });
+
+    if (instructorsDataTable) {
+        instructorsDataTable.destroy();
+    }
+    instructorsDataTable = new DataTable('#instructorsTable');
 }
 
 document.getElementById('showCreate').addEventListener('click', () => {

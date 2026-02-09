@@ -29,20 +29,24 @@
                 <input type="hidden" name="id" />
                 <div>
                     <label class="block text-sm font-medium">{{ __('Título') }}</label>
-                    <input name="title" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                    <input name="title" placeholder="Nome do curso" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
                 </div>
                 <div>
                     <label class="block text-sm font-medium">{{ __('Descrição') }}</label>
-                    <textarea name="description" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"></textarea>
+                    <textarea name="description" placeholder="Descrição do curso" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"></textarea>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium">{{ __('Carga horária (horas)') }}</label>
-                        <input name="workload_hours" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                        <input name="workload_hours" type="number" placeholder="20" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
                     </div>
                     <div>
                         <label class="block text-sm font-medium">{{ __('Modalidade') }}</label>
-                        <input name="modality" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                        <select name="modality" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            <option value="online">{{ __('Online') }}</option>
+                            <option value="in_person">{{ __('Presencial') }}</option>
+                            <option value="hybrid">{{ __('Híbrido') }}</option>
+                        </select>
                     </div>
                 </div>
                 <div class="flex gap-2">
@@ -60,6 +64,7 @@ const coursesTableBody = document.querySelector('#coursesTable tbody');
 const formContainer = document.getElementById('formContainer');
 const courseForm = document.getElementById('courseForm');
 const formTitle = document.getElementById('formTitle');
+let coursesDataTable = null;
 
 async function fetchCourses() {
     const res = await fetch('{{ route("api.courses.index") }}');
@@ -83,6 +88,11 @@ function renderCourses(list) {
         `;
         coursesTableBody.appendChild(tr);
     });
+
+    if (coursesDataTable) {
+        coursesDataTable.destroy();
+    }
+    coursesDataTable = new DataTable('#coursesTable');
 }
 
 document.getElementById('showCreate').addEventListener('click', () => {

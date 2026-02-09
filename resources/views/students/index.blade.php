@@ -55,6 +55,7 @@ const studentsTableBody = document.querySelector('#studentsTable tbody');
 const formContainer = document.getElementById('formContainer');
 const studentForm = document.getElementById('studentForm');
 const formTitle = document.getElementById('formTitle');
+let studentsDataTable = null;
 
 async function fetchStudents() {
     const res = await fetch('{{ route("api.students.index") }}');
@@ -78,6 +79,11 @@ function renderStudents(list) {
         `;
         studentsTableBody.appendChild(tr);
     });
+
+    if (studentsDataTable) {
+        studentsDataTable.destroy();
+    }
+    studentsDataTable = new DataTable('#studentsTable');
 }
 
 document.getElementById('showCreate').addEventListener('click', () => {

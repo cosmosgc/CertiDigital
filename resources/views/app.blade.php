@@ -71,6 +71,7 @@
                 const tableBody = document.querySelector('#homeCertificatesTable tbody');
                 const searchInput = document.getElementById('certSearch');
                 const searchBtn = document.getElementById('searchBtn');
+                let homeCertificatesDataTable = null;
 
                 async function fetchCertificates(q = '') {
                     const url = '{{ url('/') }}/api/certificates' + (q ? ('?q=' + encodeURIComponent(q)) : '');
@@ -104,6 +105,11 @@
                         `.replace('__ID__', s.id);
                         tableBody.appendChild(tr);
                     });
+
+                    if (homeCertificatesDataTable) {
+                        homeCertificatesDataTable.destroy();
+                    }
+                    homeCertificatesDataTable = new DataTable('#homeCertificatesTable');
                 }
 
                 if (searchBtn) {

@@ -94,6 +94,7 @@ const courseSelect = document.getElementById('courseSelect');
 const instructorSelect = document.getElementById('instructorSelect');
 const viewModal = document.getElementById('viewModal');
 const detailPre = document.getElementById('detailPre');
+let certificatesDataTable = null;
 
 async function fetchLists() {
     const [studentsRes, coursesRes, instructorsRes] = await Promise.all([
@@ -138,6 +139,11 @@ function renderCertificates(list) {
         `.replace(':id', s.id);
         certificatesTableBody.appendChild(tr);
     });
+
+    if (certificatesDataTable) {
+        certificatesDataTable.destroy();
+    }
+    certificatesDataTable = new DataTable('#certificatesTable');
 }
 
 certificatesTableBody.addEventListener('click', async (e) => {
