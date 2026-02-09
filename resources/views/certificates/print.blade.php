@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>{{ $settings['title'] ?? 'Certificate' }} - {{ $certificate->certificate_code }}</title>
+    <title>{{ $settings['title'] ?? __('Certificado') }} - {{ $certificate->certificate_code }}</title>
     <style>
         @page { size: A4 landscape; margin: 0; }
         html, body { height: 100%; margin: 0; font-family: {{ $settings['font_family'] }}; -webkit-print-color-adjust: exact; }
@@ -52,39 +52,39 @@
 <body>
     <div class="page">
         <div class="certificate">
-            <button class="print-button" onclick="window.print()" style="padding:8px 12px;border-radius:6px;background:#111827;color:white;border:0;">Print</button>
+            <button class="print-button" onclick="window.print()" style="padding:8px 12px;border-radius:6px;background:#111827;color:white;border:0;">{{ __('Imprimir') }}</button>
 
             <div>
-                <div class="title">{{ $settings['title'] ?? 'Certificate of Completion' }}</div>
+                <div class="title">{{ $settings['title'] ?? __('Certificado de Conclusão') }}</div>
 
                 <div class="meta" style="margin-top:20px;">
-                    This is to formally certify that
+                    {{ __('Certificamos que') }}
                 </div>
 
                 <div class="recipient">
-                    {{ $certificate->student->full_name ?? 'Student Name' }}
+                    {{ $certificate->student->full_name ?? __('Nome do aluno') }}
                 </div>
 
                 <div class="meta" style="margin-top:14px; max-width:70%; margin-left:auto; margin-right:auto; line-height:1.6;">
-                    has successfully completed and fulfilled all academic and practical requirements of the course entitled
-                    <strong>“{{ $certificate->course->title ?? 'Course' }}”</strong>,
-                    demonstrating commitment, participation, and satisfactory performance throughout the program.
+                    {{ __('concluiu com êxito e cumpriu todos os requisitos acadêmicos e práticos do curso intitulado') }}
+                    <strong>“{{ $certificate->course->title ?? __('Curso') }}”</strong>,
+                    {{ __('demonstrando compromisso, participação e desempenho satisfatório ao longo do programa.') }}
                 </div>
 
                 <div class="meta" style="margin-top:10px;">
-                    Course duration: {{ $certificate->start_date?->format('M d, Y') ?? '' }}
+                    {{ __('Duração do curso:') }} {{ $certificate->start_date?->format('M d, Y') ?? '' }}
                     — {{ $certificate->end_date?->format('M d, Y') ?? '' }}
                 </div>
 
                 @if($certificate->course?->workload)
                     <div class="meta">
-                        Total workload: {{ $certificate->course->workload }} hours
+                        {{ __('Carga horária total:') }} {{ $certificate->course->workload }} {{ __('horas') }}
                     </div>
                 @endif
 
                 <div class="meta" style="margin-top:14px; max-width:75%; margin-left:auto; margin-right:auto; font-size:14px;">
-                    This certificate is issued for record and verification purposes and may be validated using the
-                    unique certificate code provided below.
+                    {{ __('Este certificado é emitido para fins de registro e verificação e pode ser validado pelo') }}
+                    {{ __('código único informado abaixo.') }}
                 </div>
             </div>
 
@@ -93,18 +93,18 @@
                 <div>
                     <div class="signature">
                         @if($certificate->instructor && $certificate->instructor->signature_image)
-                            <img src="{{ $certificate->instructor->signature_image }}" alt="{{ $certificate->instructor->full_name }} signature">
+                            <img src="{{ $certificate->instructor->signature_image }}" alt="{{ $certificate->instructor->full_name }} {{ __('assinatura') }}">
                         @else
                             <div style="height:40px;"></div>
                         @endif
                         <div style="margin-top:8px;font-weight:600;">{{ $certificate->instructor->full_name ?? '' }}</div>
-                        <div style="font-size:12px;color:#6b7280;">Instructor</div>
+                        <div style="font-size:12px;color:#6b7280;">{{ __('Instrutor') }}</div>
                     </div>
                 </div>
 
                 <div class="code">
-                    Code: {{ $certificate->certificate_code }}<br>
-                    Issued: {{ $certificate->issue_date?->format('M d, Y') ?? now()->format('M d, Y') }}
+                    {{ __('Código:') }} {{ $certificate->certificate_code }}<br>
+                    {{ __('Emitido:') }} {{ $certificate->issue_date?->format('M d, Y') ?? now()->format('M d, Y') }}
                 </div>
             </div>
         </div>

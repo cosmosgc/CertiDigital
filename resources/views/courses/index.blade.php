@@ -1,22 +1,22 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
+<div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 ">
+    <div class="bg-white dark:bg-gray-800  overflow-hidden shadow-sm sm:rounded-lg p-6">
         <div class="flex justify-between items-center">
-            <h2 class="text-xl font-semibold">Courses</h2>
-            <button id="showCreate" class="px-4 py-2 bg-yellow-500 text-white rounded">New Course</button>
+            <h2 class="text-xl font-semibold">{{ __('Cursos') }}</h2>
+            <button id="showCreate" class="px-4 py-2 bg-yellow-500 text-white rounded">{{ __('Novo curso') }}</button>
         </div>
 
         <div class="mt-4">
             <table class="w-full table-auto" id="coursesTable">
                 <thead>
                     <tr class="text-left">
-                        <th class="p-2">ID</th>
-                        <th class="p-2">Title</th>
-                        <th class="p-2">Workload</th>
-                        <th class="p-2">Modality</th>
-                        <th class="p-2">Actions</th>
+                        <th class="p-2">{{ __('ID') }}</th>
+                        <th class="p-2">{{ __('Título') }}</th>
+                        <th class="p-2">{{ __('Carga horária') }}</th>
+                        <th class="p-2">{{ __('Modalidade') }}</th>
+                        <th class="p-2">{{ __('Ações') }}</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -28,26 +28,26 @@
             <form id="courseForm" class="space-y-4">
                 <input type="hidden" name="id" />
                 <div>
-                    <label class="block text-sm font-medium">Title</label>
+                    <label class="block text-sm font-medium">{{ __('Título') }}</label>
                     <input name="title" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
                 </div>
                 <div>
-                    <label class="block text-sm font-medium">Description</label>
+                    <label class="block text-sm font-medium">{{ __('Descrição') }}</label>
                     <textarea name="description" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"></textarea>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium">Workload (hours)</label>
+                        <label class="block text-sm font-medium">{{ __('Carga horária (horas)') }}</label>
                         <input name="workload_hours" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
                     </div>
                     <div>
-                        <label class="block text-sm font-medium">Modality</label>
+                        <label class="block text-sm font-medium">{{ __('Modalidade') }}</label>
                         <input name="modality" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
                     </div>
                 </div>
                 <div class="flex gap-2">
-                    <button type="submit" class="px-4 py-2 bg-yellow-500 text-white rounded">Save</button>
-                    <button type="button" id="cancelBtn" class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-yellow-500 text-white rounded">{{ __('Salvar') }}</button>
+                    <button type="button" id="cancelBtn" class="px-4 py-2 bg-gray-300 rounded">{{ __('Cancelar') }}</button>
                 </div>
             </form>
         </div>
@@ -77,8 +77,8 @@ function renderCourses(list) {
             <td class="p-2">${s.workload_hours || ''}</td>
             <td class="p-2">${s.modality || ''}</td>
             <td class="p-2">
-                <button class="editBtn px-2 py-1 bg-yellow-400 rounded" data-id="${s.id}">Edit</button>
-                <button class="deleteBtn px-2 py-1 bg-red-500 text-white rounded" data-id="${s.id}">Delete</button>
+                <button class="editBtn px-2 py-1 bg-yellow-400 rounded" data-id="${s.id}">{{ __('Editar') }}</button>
+                <button class="deleteBtn px-2 py-1 bg-red-500 text-white rounded" data-id="${s.id}">{{ __('Excluir') }}</button>
             </td>
         `;
         coursesTableBody.appendChild(tr);
@@ -88,7 +88,7 @@ function renderCourses(list) {
 document.getElementById('showCreate').addEventListener('click', () => {
     courseForm.reset();
     courseForm.id.value = '';
-    formTitle.textContent = 'Create Course';
+    formTitle.textContent = @json(__('Criar curso'));
     formContainer.classList.remove('hidden');
 });
 
@@ -106,12 +106,12 @@ coursesTableBody.addEventListener('click', async (e) => {
         courseForm.workload_hours.value = item.workload_hours || '';
         courseForm.modality.value = item.modality || '';
         courseForm.id.value = item.id;
-        formTitle.textContent = 'Edit Course';
+        formTitle.textContent = @json(__('Editar curso'));
         formContainer.classList.remove('hidden');
     }
 
     if (e.target.classList.contains('deleteBtn')) {
-        if (!confirm('Delete course?')) return;
+        if (!confirm(@json(__('Excluir curso?')))) return;
         const id = e.target.dataset.id;
         await fetch(`{{ route("api.courses.destroy", ["course" => "__ID__"]) }}`.replace('__ID__', id), {
             method: 'DELETE',
@@ -153,7 +153,7 @@ courseForm.addEventListener('submit', async (e) => {
         formContainer.classList.add('hidden');
         fetchCourses();
     } else {
-        alert('Error saving course');
+        alert(@json(__('Erro ao salvar curso')));
     }
 });
 

@@ -2,57 +2,57 @@
 
 @section('content')
 <div class="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
-    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
-        <h2 class="text-xl font-semibold">Emit Certificate</h2>
+    <div class="bg-white dark:bg-gray-800  overflow-hidden shadow-sm  sm:rounded-lg p-6">
+        <h2 class="text-xl font-semibold">{{ __('Emitir certificado') }}</h2>
 
         <form id="emitForm" class="mt-4 space-y-4">
             <div>
-                <label class="block text-sm font-medium">Student</label>
-                <select name="student_id" id="studentSelect" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"></select>
+                <label class="block text-sm font-medium">{{ __('Aluno') }}</label>
+                <select name="student_id" id="studentSelect" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm "></select>
             </div>
             <div>
-                <label class="block text-sm font-medium">Instructor</label>
+                <label class="block text-sm font-medium">{{ __('Instrutor') }}</label>
                 <select name="instructor_id" id="instructorSelect"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                    <option value="">Select instructor</option>
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm ">
+                    <option value="">{{ __('Selecione o instrutor') }}</option>
                 </select>
             </div>
 
             <div>
-                <label class="block text-sm font-medium">Course</label>
-                <select name="course_id" id="courseSelect" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"></select>
+                <label class="block text-sm font-medium">{{ __('Curso') }}</label>
+                <select name="course_id" id="courseSelect" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm "></select>
             </div>
             <div class="grid grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-sm font-medium">Issue date</label>
-                    <input type="date" name="issue_date" id="issue_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                    <label class="block text-sm font-medium">{{ __('Data de emissão') }}</label>
+                    <input type="date" name="issue_date" id="issue_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm " />
                 </div>
                 <div>
-                    <label class="block text-sm font-medium">Start date</label>
-                    <input type="date" name="start_date" id="start_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                    <label class="block text-sm font-medium">{{ __('Data de início') }}</label>
+                    <input type="date" name="start_date" id="start_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm " />
                 </div>
                 <div>
-                    <label class="block text-sm font-medium">End date</label>
-                    <input type="date" name="end_date" id="end_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                    <label class="block text-sm font-medium">{{ __('Data de término') }}</label>
+                    <input type="date" name="end_date" id="end_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm " />
                 </div>
             </div>
 
             <div>
-                <label for="status" class="block text-sm font-medium">Status</label>
+                <label for="status" class="block text-sm font-medium">{{ __('Status') }}</label>
                 <select
                     name="status"
                     id="status"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm "
                     required
                 >
-                    <option value="valid">Valid</option>
-                    <option value="revoked">Revoked</option>
+                    <option value="valid">{{ __('Válido') }}</option>
+                    <option value="revoked">{{ __('Revogado') }}</option>
                 </select>
             </div>
 
 
             <div class="flex gap-2">
-                <button type="submit" class="px-4 py-2 bg-pink-600 text-white rounded">Emit</button>
+                <button type="submit" class="px-4 py-2 bg-pink-600 text-white rounded">{{ __('Emitir') }}</button>
             </div>
         </form>
 
@@ -74,9 +74,9 @@ async function fetchChoices() {
     const courses = (await coursesRes.json()).data || (await coursesRes.json());
     const instructors = (await instructorsRes.json()).data || (await instructorsRes.json());
 
-    studentSelect.innerHTML = '<option value="">Choose student</option>' + (students || []).map(s => `<option value="${s.id}">${s.full_name}</option>`).join('');
-    courseSelect.innerHTML = '<option value="">Choose course</option>' + (courses || []).map(c => `<option value="${c.id}">${c.title}</option>`).join('');
-    instructorSelect.innerHTML = '<option value="">Choose instructor</option>' + (instructors || []).map(i => `<option value="${i.id}">${i.full_name}</option>`).join('');
+    studentSelect.innerHTML = '<option value="">' + @json(__('Escolha um aluno')) + '</option>' + (students || []).map(s => `<option value="${s.id}">${s.full_name}</option>`).join('');
+    courseSelect.innerHTML = '<option value="">' + @json(__('Escolha um curso')) + '</option>' + (courses || []).map(c => `<option value="${c.id}">${c.title}</option>`).join('');
+    instructorSelect.innerHTML = '<option value="">' + @json(__('Escolha um instrutor')) + '</option>' + (instructors || []).map(i => `<option value="${i.id}">${i.full_name}</option>`).join('');
 }
 
 function generateCode() {
@@ -109,11 +109,11 @@ emitForm.addEventListener('submit', async (e) => {
 
     if (res.ok) {
         const data = await res.json();
-        result.innerHTML = `<div class="p-4 bg-green-100 rounded">Certificate issued: <strong>${data.certificate_code}</strong></div>`;
+        result.innerHTML = `<div class="p-4 bg-green-100 rounded">{{ __('Certificado emitido:') }} <strong>${data.certificate_code}</strong></div>`;
         emitForm.reset();
     } else {
         const err = await res.json();
-        result.innerHTML = `<div class="p-4 bg-red-100 rounded">Error: ${err.message || 'Unable to issue certificate'}</div>`;
+        result.innerHTML = `<div class="p-4 bg-red-100 rounded">{{ __('Erro:') }} ${err.message || @json(__('Não foi possível emitir o certificado'))}</div>`;
     }
 });
 

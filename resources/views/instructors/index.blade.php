@@ -1,21 +1,21 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
+<div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 ">
+    <div class="bg-white dark:bg-gray-800  overflow-hidden shadow-sm sm:rounded-lg p-6">
         <div class="flex justify-between items-center">
-            <h2 class="text-xl font-semibold">Instructors</h2>
-            <button id="showCreate" class="px-4 py-2 bg-green-600 text-white rounded">New Instructor</button>
+            <h2 class="text-xl font-semibold">{{ __('Instrutores') }}</h2>
+            <button id="showCreate" class="px-4 py-2 bg-green-600 text-white rounded">{{ __('Novo instrutor') }}</button>
         </div>
 
         <div class="mt-4">
             <table class="w-full table-auto" id="instructorsTable">
                 <thead>
                     <tr class="text-left">
-                        <th class="p-2">ID</th>
-                        <th class="p-2">Name</th>
-                        <th class="p-2">Email</th>
-                        <th class="p-2">Actions</th>
+                        <th class="p-2">{{ __('ID') }}</th>
+                        <th class="p-2">{{ __('Nome') }}</th>
+                        <th class="p-2">{{ __('E-mail') }}</th>
+                        <th class="p-2">{{ __('Ações') }}</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -27,11 +27,11 @@
             <form id="instructorForm" class="space-y-4">
                 <input type="hidden" name="id" />
                 <div>
-                    <label class="block text-sm font-medium">Full name</label>
+                    <label class="block text-sm font-medium">{{ __('Nome completo') }}</label>
                     <input name="full_name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
                 </div>
                 <div>
-                    <label class="block text-sm font-medium">Email</label>
+                    <label class="block text-sm font-medium">{{ __('E-mail') }}</label>
                     <input name="email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
                 </div>
                 <div>
@@ -39,8 +39,8 @@
                     <input name="cpf_cnpj" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
                 </div>
                 <div class="flex gap-2">
-                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Save</button>
-                    <button type="button" id="cancelBtn" class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">{{ __('Salvar') }}</button>
+                    <button type="button" id="cancelBtn" class="px-4 py-2 bg-gray-300 rounded">{{ __('Cancelar') }}</button>
                 </div>
             </form>
         </div>
@@ -81,8 +81,8 @@ function renderInstructors(list) {
             <td class="p-2">${s.full_name}</td>
             <td class="p-2">${s.email}</td>
             <td class="p-2">
-                <button class="editBtn px-2 py-1 bg-yellow-400 rounded" data-id="${s.id}">Edit</button>
-                <button class="deleteBtn px-2 py-1 bg-red-500 text-white rounded" data-id="${s.id}">Delete</button>
+                <button class="editBtn px-2 py-1 bg-yellow-400 rounded" data-id="${s.id}">{{ __('Editar') }}</button>
+                <button class="deleteBtn px-2 py-1 bg-red-500 text-white rounded" data-id="${s.id}">{{ __('Excluir') }}</button>
             </td>
         `;
         instructorsTableBody.appendChild(tr);
@@ -92,7 +92,7 @@ function renderInstructors(list) {
 document.getElementById('showCreate').addEventListener('click', () => {
     instructorForm.reset();
     instructorForm.id.value = '';
-    formTitle.textContent = 'Create Instructor';
+    formTitle.textContent = @json(__('Criar instrutor'));
     formContainer.classList.remove('hidden');
 });
 
@@ -109,12 +109,12 @@ instructorsTableBody.addEventListener('click', async (e) => {
         instructorForm.email.value = item.email;
         instructorForm.cpf_cnpj.value = item.cpf_cnpj || '';
         instructorForm.id.value = item.id;
-        formTitle.textContent = 'Edit Instructor';
+        formTitle.textContent = @json(__('Editar instrutor'));
         formContainer.classList.remove('hidden');
     }
 
     if (e.target.classList.contains('deleteBtn')) {
-        if (!confirm('Delete instructor?')) return;
+        if (!confirm(@json(__('Excluir instrutor?')))) return;
         const id = e.target.dataset.id;
         await fetch(`{{ route("api.instructors.destroy", ["instructor" => "__ID__"]) }}`.replace('__ID__', id), {
             method: 'DELETE',
@@ -155,7 +155,7 @@ instructorForm.addEventListener('submit', async (e) => {
         formContainer.classList.add('hidden');
         fetchInstructors();
     } else {
-        alert('Error saving instructor');
+        alert(@json(__('Erro ao salvar instrutor')));
     }
 });
 

@@ -1,24 +1,24 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
+<div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 ">
+    <div class="bg-white dark:bg-gray-800  overflow-hidden shadow-sm sm:rounded-lg p-6">
         <div class="flex justify-between items-center">
-            <h2 class="text-xl font-semibold">Certificates</h2>
-            <a href="{{ route('certificates.emit') }}" class="px-4 py-2 bg-pink-600 text-white rounded">Emit Certificate</a>
+            <h2 class="text-xl font-semibold">{{ __('Certificados') }}</h2>
+            <a href="{{ route('certificates.emit') }}" class="px-4 py-2 bg-pink-600 text-white rounded">{{ __('Emitir certificado') }}</a>
         </div>
 
         <div class="mt-4">
             <table class="w-full table-auto" id="certificatesTable">
                 <thead>
                     <tr class="text-left">
-                        <th class="p-2">ID</th>
-                        <th class="p-2">Code</th>
-                        <th class="p-2">Student</th>
-                        <th class="p-2">Course</th>
-                        <th class="p-2">Issue Date</th>
-                        <th class="p-2">Status</th>
-                        <th class="p-2">Actions</th>
+                        <th class="p-2">{{ __('ID') }}</th>
+                        <th class="p-2">{{ __('Código') }}</th>
+                        <th class="p-2">{{ __('Aluno') }}</th>
+                        <th class="p-2">{{ __('Curso') }}</th>
+                        <th class="p-2">{{ __('Data de emissão') }}</th>
+                        <th class="p-2">{{ __('Status') }}</th>
+                        <th class="p-2">{{ __('Ações') }}</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -30,54 +30,54 @@
             <form id="certificateForm" class="space-y-4">
                 <input type="hidden" name="id" />
                 <div>
-                    <label class="block text-sm font-medium">Certificate Code</label>
+                    <label class="block text-sm font-medium">{{ __('Código do certificado') }}</label>
                     <input name="certificate_code" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" readonly />
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium">Student</label>
+                    <label class="block text-sm font-medium">{{ __('Aluno') }}</label>
                     <select name="student_id" id="studentSelect" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"></select>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium">Course</label>
+                    <label class="block text-sm font-medium">{{ __('Curso') }}</label>
                     <select name="course_id" id="courseSelect" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"></select>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium">Instructor</label>
+                    <label class="block text-sm font-medium">{{ __('Instrutor') }}</label>
                     <select name="instructor_id" id="instructorSelect" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"></select>
                 </div>
 
                 <div class="grid grid-cols-3 gap-4">
                     <div>
-                        <label class="block text-sm font-medium">Issue date</label>
+                        <label class="block text-sm font-medium">{{ __('Data de emissão') }}</label>
                         <input type="date" name="issue_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
                     </div>
                     <div>
-                        <label class="block text-sm font-medium">Start date</label>
+                        <label class="block text-sm font-medium">{{ __('Data de início') }}</label>
                         <input type="date" name="start_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
                     </div>
                     <div>
-                        <label class="block text-sm font-medium">End date</label>
+                        <label class="block text-sm font-medium">{{ __('Data de término') }}</label>
                         <input type="date" name="end_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium">Status</label>
+                    <label class="block text-sm font-medium">{{ __('Status') }}</label>
                     <input name="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
                 </div>
 
                 <div class="flex gap-2">
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded">Save</button>
-                    <button type="button" id="cancelBtn" class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded">{{ __('Salvar') }}</button>
+                    <button type="button" id="cancelBtn" class="px-4 py-2 bg-gray-300 rounded">{{ __('Cancelar') }}</button>
                 </div>
             </form>
         </div>
 
         <div id="viewModal" class="mt-4 hidden">
-            <h3 class="font-semibold">Certificate Details</h3>
+            <h3 class="font-semibold">{{ __('Detalhes do certificado') }}</h3>
             <pre id="detailPre" class="bg-gray-100 p-4 mt-2 rounded"></pre>
         </div>
     </div>
@@ -106,9 +106,9 @@ async function fetchLists() {
     const courses = (await coursesRes.json()).data || (await coursesRes.json());
     const instructors = (await instructorsRes.json()).data || (await instructorsRes.json());
 
-    studentSelect.innerHTML = '<option value="">Choose student</option>' + (students || []).map(s => `<option value="${s.id}">${s.full_name}</option>`).join('');
-    courseSelect.innerHTML = '<option value="">Choose course</option>' + (courses || []).map(c => `<option value="${c.id}">${c.title}</option>`).join('');
-    instructorSelect.innerHTML = '<option value="">Choose instructor</option>' + (instructors || []).map(i => `<option value="${i.id}">${i.full_name}</option>`).join('');
+    studentSelect.innerHTML = '<option value="">' + @json(__('Escolha um aluno')) + '</option>' + (students || []).map(s => `<option value="${s.id}">${s.full_name}</option>`).join('');
+    courseSelect.innerHTML = '<option value="">' + @json(__('Escolha um curso')) + '</option>' + (courses || []).map(c => `<option value="${c.id}">${c.title}</option>`).join('');
+    instructorSelect.innerHTML = '<option value="">' + @json(__('Escolha um instrutor')) + '</option>' + (instructors || []).map(i => `<option value="${i.id}">${i.full_name}</option>`).join('');
 }
 
 async function fetchCertificates() {
@@ -130,10 +130,10 @@ function renderCertificates(list) {
             <td class="p-2">${s.issue_date || ''}</td>
             <td class="p-2">${s.status || ''}</td>
             <td class="p-2">
-                <a href="{{ route('certificates.print', ':id') }}" target="_blank" class="printBtn px-2 py-1 bg-blue-600 text-white rounded" data-id="${s.id}">Print</a>
-                <button class="viewBtn px-2 py-1 bg-blue-400 text-white rounded" data-code="${s.certificate_code}">View</button>
-                <button class="editBtn px-2 py-1 bg-yellow-400 rounded" data-id="${s.id}">Edit</button>
-                <button class="deleteBtn px-2 py-1 bg-red-500 text-white rounded" data-id="${s.id}">Delete</button>
+                <a href="{{ route('certificates.print', ':id') }}" target="_blank" class="printBtn px-2 py-1 bg-blue-600 text-white rounded" data-id="${s.id}">{{ __('Imprimir') }}</a>
+                <button class="viewBtn px-2 py-1 bg-blue-400 text-white rounded" data-code="${s.certificate_code}">{{ __('Visualizar') }}</button>
+                <button class="editBtn px-2 py-1 bg-yellow-400 rounded" data-id="${s.id}">{{ __('Editar') }}</button>
+                <button class="deleteBtn px-2 py-1 bg-red-500 text-white rounded" data-id="${s.id}">{{ __('Excluir') }}</button>
             </td>
         `.replace(':id', s.id);
         certificatesTableBody.appendChild(tr);
@@ -154,12 +154,12 @@ certificatesTableBody.addEventListener('click', async (e) => {
         certificateForm.start_date.value = item.start_date || '';
         certificateForm.end_date.value = item.end_date || '';
         certificateForm.status.value = item.status || '';
-        formTitle.textContent = 'Edit Certificate';
+        formTitle.textContent = @json(__('Editar certificado'));
         formContainer.classList.remove('hidden');
     }
 
     if (e.target.classList.contains('deleteBtn')) {
-        if (!confirm('Delete certificate?')) return;
+        if (!confirm(@json(__('Excluir certificado?')))) return;
         const id = e.target.dataset.id;
         await fetch('{{ route("api.certificates.destroy", ":id") }}'.replace(':id', id), {
             method: 'DELETE',
@@ -216,7 +216,7 @@ certificateForm.addEventListener('submit', async (e) => {
         formContainer.classList.add('hidden');
         fetchCertificates();
     } else {
-        alert('Error saving certificate');
+        alert(@json(__('Erro ao salvar certificado')));
     }
 });
 
