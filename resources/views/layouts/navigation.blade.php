@@ -36,6 +36,10 @@
                         <x-nav-link :href="route('certificates.emit')" :active="request()->routeIs('certificates.emit')">
                             {{ __('Emitir certificado') }}
                         </x-nav-link>
+
+                        <x-nav-link :href="route('certificate-settings.edit')" :active="request()->routeIs('certificate-settings.*')">
+                            {{ __('Configuração de Certificados') }}
+                        </x-nav-link>
                     @endauth
                 </div>
             </div>

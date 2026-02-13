@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Certificate;
+use App\Models\CertificateSetting;
 use Illuminate\Http\Request;
 
 class CertificatePrintController extends Controller
@@ -12,16 +13,17 @@ class CertificatePrintController extends Controller
         // Load relations for display
         $certificate->load(['student', 'course', 'instructor']);
 
-        // Default settings from config, allow query param overrides
-        $defaults = config('certificates', [
-            'frame_color' => '#1f2937',
-            'border_width' => '8px',
-            'font_family' => "'Georgia', 'Times New Roman', serif",
-            'background_image_url' => null,
-            'title' => 'Certificate of Completion',
-            'signature_max_width' => '220px',
-            'watermark_opacity' => 0.06,
-        ]);
+        // Get settings from database
+        $dbSettings = CertificateSetting::current();
+        $defaults = [
+            'frame_color' => $dbSettings->frame_color,
+            'border_width' => $dbSettings->border_width,
+            'font_family' => $dbSettings->font_family,
+            'background_image_url' => $dbSettings->background_image_url,
+            'title' => $dbSettings->title,
+            'signature_max_width' => $dbSettings->signature_max_width,
+            'watermark_opacity' => $dbSettings->watermark_opacity,
+        ];
 
         $overrides = $request->only(['frame_color', 'border_width', 'font_family', 'background_image_url', 'title', 'signature_max_width', 'watermark_opacity']);
 
