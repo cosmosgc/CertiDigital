@@ -47,6 +47,10 @@
             .print-button { display:none; }
             .page { height: auto; }
         }
+
+        @if($settings['custom_css'])
+            {!! $settings['custom_css'] !!}
+        @endif
     </style>
 </head>
 <body>

@@ -16,6 +16,7 @@ class CertificateSetting extends Model
         'title',
         'signature_max_width',
         'watermark_opacity',
+        'custom_css',
     ];
 
     protected $casts = [

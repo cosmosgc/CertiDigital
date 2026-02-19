@@ -29,6 +29,7 @@ class CertificateSettingController extends Controller
             'title' => 'nullable|string|max:255',
             'signature_max_width' => 'nullable|string|max:20',
             'watermark_opacity' => 'nullable|numeric|min:0|max:1',
+            'custom_css' => 'nullable|string',
         ]);
 
         // Apply default values if fields are empty

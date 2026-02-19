@@ -147,6 +147,21 @@
                 <p class="text-sm text-gray-500 mt-1">Use public path like /images/certificate-bg.jpg</p>
             </div>
 
+            <!-- Custom CSS -->
+            <div>
+                <label for="custom_css" class="block text-sm font-medium text-gray-700 mb-2">
+                    Custom CSS (Optional)
+                </label>
+                <textarea 
+                    id="custom_css" 
+                    name="custom_css" 
+                    rows="6"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                    placeholder=".certificate-title { color: #333; }"
+                >{{ old('custom_css', $settings->custom_css) }}</textarea>
+                <p class="text-sm text-gray-500 mt-1">Add custom CSS rules to further customize the certificate appearance</p>
+            </div>
+
             <!-- Submit Button -->
             <div class="flex gap-3 pt-6">
                 <button 
