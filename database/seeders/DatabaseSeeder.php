@@ -15,11 +15,17 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // create admin role if it doesn't exist
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'admin']);
+
         // User::factory(10)->create();
 
-        User::factory()->create([
+        $user = User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+
+        // give the seeded user the admin role for convenience
+        $user->assignRole('admin');
     }
 }

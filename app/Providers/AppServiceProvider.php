@@ -19,6 +19,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // register role/permission middleware aliases provided by spatie package
+        $router = $this->app['router'];
+        // package places these middleware under \Spatie\Permission\Middleware (no "s" in folder name)
+        $router->aliasMiddleware('role', \Spatie\Permission\Middleware\RoleMiddleware::class);
+        $router->aliasMiddleware('permission', \Spatie\Permission\Middleware\PermissionMiddleware::class);
+        $router->aliasMiddleware('role_or_permission', \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class);
+
+        // custom middleware that bundles authentication + admin check
+        $router->aliasMiddleware('admin.only', \App\Http\Middleware\AdminOnly::class);
     }
 }

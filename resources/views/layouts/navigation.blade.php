@@ -17,29 +17,37 @@
                     </x-nav-link>
 
                     @auth
-                        <x-nav-link :href="route('students.index')" :active="request()->routeIs('students.*')">
-                            {{ __('Alunos') }}
-                        </x-nav-link>
-
-                        <x-nav-link :href="route('instructors.index')" :active="request()->routeIs('instructors.*')">
-                            {{ __('Instrutores') }}
-                        </x-nav-link>
-
-                        <x-nav-link :href="route('courses.index')" :active="request()->routeIs('courses.*')">
-                            {{ __('Cursos') }}
-                        </x-nav-link>
-
-                        <x-nav-link :href="route('certificates.index')" :active="request()->routeIs('certificates.*')">
-                            {{ __('Certificados') }}
-                        </x-nav-link>
-
+                        {{-- keep only endpoints available to regular authenticated users here --}}
                         <x-nav-link :href="route('certificates.emit')" :active="request()->routeIs('certificates.emit')">
                             {{ __('Emitir certificado') }}
                         </x-nav-link>
 
-                        <x-nav-link :href="route('certificate-settings.edit')" :active="request()->routeIs('certificate-settings.*')">
-                            {{ __('Configuração de Certificados') }}
-                        </x-nav-link>
+                        {{-- admin-only links --}}
+                        @role('admin')
+                            <x-nav-link :href="route('students.index')" :active="request()->routeIs('students.*')">
+                                {{ __('Alunos') }}
+                            </x-nav-link>
+
+                            <x-nav-link :href="route('instructors.index')" :active="request()->routeIs('instructors.*')">
+                                {{ __('Instrutores') }}
+                            </x-nav-link>
+
+                            <x-nav-link :href="route('courses.index')" :active="request()->routeIs('courses.*')">
+                                {{ __('Cursos') }}
+                            </x-nav-link>
+
+                            <x-nav-link :href="route('certificates.index')" :active="request()->routeIs('certificates.*')">
+                                {{ __('Certificados') }}
+                            </x-nav-link>
+
+                            <x-nav-link :href="route('certificate-settings.edit')" :active="request()->routeIs('certificate-settings.*')">
+                                {{ __('Configuração de Certificados') }}
+                            </x-nav-link>
+
+                            <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
+                                {{ __('User management') }}
+                            </x-nav-link>
+                        @endrole
                     @endauth
                 </div>
             </div>
@@ -129,6 +137,33 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Painel') }}
             </x-responsive-nav-link>
+
+            @auth
+                <x-responsive-nav-link :href="route('certificates.emit')" :active="request()->routeIs('certificates.emit')">
+                    {{ __('Emitir certificado') }}
+                </x-responsive-nav-link>
+
+                @role('admin')
+                    <x-responsive-nav-link :href="route('students.index')" :active="request()->routeIs('students.*')">
+                        {{ __('Alunos') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('instructors.index')" :active="request()->routeIs('instructors.*')">
+                        {{ __('Instrutores') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('courses.index')" :active="request()->routeIs('courses.*')">
+                        {{ __('Cursos') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('certificates.index')" :active="request()->routeIs('certificates.*')">
+                        {{ __('Certificados') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('certificate-settings.edit')" :active="request()->routeIs('certificate-settings.*')">
+                        {{ __('Configuração de Certificados') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
+                        {{ __('User management') }}
+                    </x-responsive-nav-link>
+                @endrole
+            @endauth
         </div>
 
         <!-- Responsive Settings Options -->

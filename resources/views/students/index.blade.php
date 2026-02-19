@@ -51,14 +51,20 @@
 
 <script>
 const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+// current authenticated user id (used when creating/updating records)
+const currentUserId = @json(auth()->id());
 const studentsTableBody = document.querySelector('#studentsTable tbody');
 const formContainer = document.getElementById('formContainer');
 const studentForm = document.getElementById('studentForm');
 const formTitle = document.getElementById('formTitle');
 let studentsDataTable = null;
-
+ 
 async function fetchStudents() {
-    const res = await fetch('{{ route("api.students.index") }}');
+    // this endpoint is protected by sanctum; we must send the auth cookie
+    const res = await fetch('{{ route("api.students.index") }}', {
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json' }
+    });
     const data = await res.json();
     renderStudents(data.data || data);
 }
@@ -100,7 +106,10 @@ document.getElementById('cancelBtn').addEventListener('click', () => {
 studentsTableBody.addEventListener('click', async (e) => {
     if (e.target.classList.contains('editBtn')) {
         const id = e.target.dataset.id;
-        const res = await fetch(`{{ route("api.students.show", ["student" => "__ID__"]) }}`.replace('__ID__', id));
+        const res = await fetch(`{{ route("api.students.show", ["student" => "__ID__"]) }}`.replace('__ID__', id), {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json' }
+        });
         const student = await res.json();
         studentForm.full_name.value = student.full_name;
         studentForm.email.value = student.email;
@@ -131,6 +140,7 @@ studentForm.addEventListener('submit', async (e) => {
         full_name: studentForm.full_name.value,
         email: studentForm.email.value,
         document_id: studentForm.document_id.value || null,
+        user_id: currentUserId,
     };
 
     const id = studentForm.id.value;

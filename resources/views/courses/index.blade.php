@@ -60,6 +60,7 @@
 
 <script>
 const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+const currentUserId = @json(auth()->id());
 const coursesTableBody = document.querySelector('#coursesTable tbody');
 const formContainer = document.getElementById('formContainer');
 const courseForm = document.getElementById('courseForm');
@@ -142,6 +143,7 @@ courseForm.addEventListener('submit', async (e) => {
         description: courseForm.description.value || null,
         workload_hours: courseForm.workload_hours.value || null,
         modality: courseForm.modality.value || null,
+        user_id: currentUserId,
     };
 
     const id = courseForm.id.value;

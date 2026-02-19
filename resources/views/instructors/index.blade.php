@@ -61,6 +61,7 @@ async function initSanctum() {
 <script>
     
 const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+const currentUserId = @json(auth()->id());
 const instructorsTableBody = document.querySelector('#instructorsTable tbody');
 const formContainer = document.getElementById('formContainer');
 const instructorForm = document.getElementById('instructorForm');
@@ -140,6 +141,7 @@ instructorForm.addEventListener('submit', async (e) => {
         full_name: instructorForm.full_name.value,
         email: instructorForm.email.value,
         cpf_cnpj: instructorForm.cpf_cnpj.value || null,
+        user_id: currentUserId,
     };
 
     const id = instructorForm.id.value;
