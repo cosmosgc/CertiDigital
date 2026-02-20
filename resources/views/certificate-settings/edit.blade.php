@@ -3,7 +3,7 @@
 @section('content')
 <div class="min-h-screen bg-gray-100 py-12 px-4">
     <div class="max-w-2xl mx-auto bg-white rounded-lg shadow p-8">
-        <h1 class="text-3xl font-bold text-gray-900 mb-8">Certificate Customization</h1>
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Personalização do Certificado</h1>
 
         @if ($errors->any())
             <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
@@ -28,7 +28,7 @@
             <!-- Title -->
             <div>
                 <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
-                    Certificate Title <span class="text-gray-500 text-xs">(Optional - defaults to 'Certificate of Completion')</span>
+                    Título do Certificado <span class="text-gray-500 text-xs">(Opcional - padrão: 'Certificado de Conclusão')</span>
                 </label>
                 <input 
                     type="text" 
@@ -36,14 +36,14 @@
                     name="title" 
                     value="{{ old('title', $settings->title) }}"
                     class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Certificate of Completion"
+                    placeholder="Certificado de Conclusão"
                 />
             </div>
 
             <!-- Frame Color -->
             <div>
                 <label for="frame_color" class="block text-sm font-medium text-gray-700 mb-2">
-                    Frame Color <span class="text-gray-500 text-xs">(Optional - defaults to #1f2937)</span>
+                    Cor da Moldura <span class="text-gray-500 text-xs">(Opcional - padrão: #1f2937)</span>
                 </label>
                 <div class="flex items-center gap-3">
                     <input 
@@ -66,7 +66,7 @@
             <!-- Border Width -->
             <div>
                 <label for="border_width" class="block text-sm font-medium text-gray-700 mb-2">
-                    Border Width <span class="text-gray-500 text-xs">(Optional - defaults to 8px)</span>
+                    Largura da Borda <span class="text-gray-500 text-xs">(Opcional - padrão: 8px)</span>
                 </label>
                 <input 
                     type="text" 
@@ -81,7 +81,7 @@
             <!-- Font Family -->
             <div>
                 <label for="font_family" class="block text-sm font-medium text-gray-700 mb-2">
-                    Font Family <span class="text-gray-500 text-xs">(Optional - defaults to Georgia, Times New Roman)</span>
+                    Família de Fontes <span class="text-gray-500 text-xs">(Opcional - padrão: Georgia, Times New Roman)</span>
                 </label>
                 <input 
                     type="text" 
@@ -91,13 +91,13 @@
                     class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="'Georgia', 'Times New Roman', serif"
                 />
-                <p class="text-sm text-gray-500 mt-1">Use CSS font-family format</p>
+                <p class="text-sm text-gray-500 mt-1">Use o formato CSS de `font-family`</p>
             </div>
 
             <!-- Signature Max Width -->
             <div>
                 <label for="signature_max_width" class="block text-sm font-medium text-gray-700 mb-2">
-                    Signature Maximum Width <span class="text-gray-500 text-xs">(Optional - defaults to 220px)</span>
+                    Largura máxima da assinatura <span class="text-gray-500 text-xs">(Opcional - padrão: 220px)</span>
                 </label>
                 <input 
                     type="text" 
@@ -112,7 +112,7 @@
             <!-- Watermark Opacity -->
             <div>
                 <label for="watermark_opacity" class="block text-sm font-medium text-gray-700 mb-2">
-                    Watermark Opacity (0 - 1) <span class="text-gray-500 text-xs">(Optional - defaults to 0.06)</span>
+                    Opacidade da Marca d'água (0 - 1) <span class="text-gray-500 text-xs">(Opcional - padrão: 0.06)</span>
                 </label>
                 <div class="flex items-center gap-3">
                     <input 
@@ -134,7 +134,7 @@
             <!-- Background Image URL -->
             <div>
                 <label for="background_image_url" class="block text-sm font-medium text-gray-700 mb-2">
-                    Background Image URL (Optional)
+                    URL da imagem de fundo (Opcional)
                 </label>
                 <input 
                     type="text" 
@@ -144,13 +144,13 @@
                     class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="/images/certificate-bg.jpg"
                 />
-                <p class="text-sm text-gray-500 mt-1">Use public path like /images/certificate-bg.jpg</p>
+                <p class="text-sm text-gray-500 mt-1">Use caminho público como /images/certificate-bg.jpg</p>
             </div>
 
             <!-- Custom CSS -->
             <div>
                 <label for="custom_css" class="block text-sm font-medium text-gray-700 mb-2">
-                    Custom CSS (Optional)
+                    CSS personalizado (Opcional)
                 </label>
                 <textarea 
                     id="custom_css" 
@@ -159,7 +159,7 @@
                     class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                     placeholder=".certificate-title { color: #333; }"
                 >{{ old('custom_css', $settings->custom_css) }}</textarea>
-                <p class="text-sm text-gray-500 mt-1">Add custom CSS rules to further customize the certificate appearance</p>
+                <p class="text-sm text-gray-500 mt-1">Adicione regras CSS personalizadas para customizar ainda mais a aparência do certificado</p>
             </div>
 
             <!-- Submit Button -->
@@ -168,13 +168,13 @@
                     type="submit" 
                     class="px-6 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition"
                 >
-                    Save Settings
+                    Salvar configurações
                 </button>
                 <a 
                     href="{{ route('dashboard') }}" 
                     class="px-6 py-2 bg-gray-300 text-gray-800 font-medium rounded-md hover:bg-gray-400 transition"
                 >
-                    Cancel
+                    Cancelar
                 </a>
             </div>
         </form>
