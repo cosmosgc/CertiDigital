@@ -96,16 +96,39 @@ const viewModal = document.getElementById('viewModal');
 const detailPre = document.getElementById('detailPre');
 let certificatesDataTable = null;
 
+// helper that fetches and attempts to parse JSON, logging the raw response if parsing fails
+async function fetchJson(url, options = {}) {
+    // always include credentials so session/cookies are sent for auth
+    options.credentials = options.credentials || 'same-origin';
+    const res = await fetch(url, options);
+    const text = await res.text();
+    const contentType = res.headers.get('content-type') || '';
+    if (!res.ok) {
+        console.error('Network error', url, res.status, text);
+        throw new Error(`Network error ${res.status}`);
+    }
+    if (!contentType.includes('application/json')) {
+        console.error('Expected JSON but got', contentType, 'for', url, text);
+        throw new SyntaxError('Invalid JSON response');
+    }
+    try {
+        return JSON.parse(text);
+    } catch (err) {
+        console.error('Failed to parse JSON from', url, text);
+        throw err;
+    }
+}
+
 async function fetchLists() {
-    const [studentsRes, coursesRes, instructorsRes] = await Promise.all([
-        fetch('{{ route("api.students.index") }}'),
-        fetch('{{ route("api.courses.index") }}'),
-        fetch('{{ route("api.instructors.index") }}')
+    const [studentsData, coursesData, instructorsData] = await Promise.all([
+        fetchJson('{{ route("api.students.index") }}'),
+        fetchJson('{{ route("api.courses.index") }}'),
+        fetchJson('{{ route("api.instructors.index") }}')
     ]);
 
-    const students = (await studentsRes.json()).data || (await studentsRes.json());
-    const courses = (await coursesRes.json()).data || (await coursesRes.json());
-    const instructors = (await instructorsRes.json()).data || (await instructorsRes.json());
+    const students = studentsData.data || studentsData;
+    const courses = coursesData.data || coursesData;
+    const instructors = instructorsData.data || instructorsData;
 
     studentSelect.innerHTML = '<option value="">' + @json(__('Escolha um aluno')) + '</option>' + (students || []).map(s => `<option value="${s.id}">${s.full_name}</option>`).join('');
     courseSelect.innerHTML = '<option value="">' + @json(__('Escolha um curso')) + '</option>' + (courses || []).map(c => `<option value="${c.id}">${c.title}</option>`).join('');
@@ -113,10 +136,15 @@ async function fetchLists() {
 }
 
 async function fetchCertificates() {
-    const res = await fetch('{{ route("api.certificates.index") }}');
-    const data = await res.json();
-    const list = data.data || data;
-    renderCertificates(list);
+    try {
+        const data = await fetchJson('{{ route("api.certificates.index") }}');
+        const list = data.data || data;
+        renderCertificates(list);
+    } catch (err) {
+        console.warn('Could not load certificates:', err);
+        // optionally clear table or show message
+        certificatesTableBody.innerHTML = '<tr><td colspan="7" class="p-2 text-center text-gray-500">{{ addslashes(__("Não foi possível carregar")) }}</td></tr>';
+    }
 }
 
 function renderCertificates(list) {
@@ -149,41 +177,54 @@ function renderCertificates(list) {
 certificatesTableBody.addEventListener('click', async (e) => {
     if (e.target.classList.contains('editBtn')) {
         const id = e.target.dataset.id;
-        const res = await fetch('{{ route("api.certificates.show", ":id") }}'.replace(':id', id));
-        const item = await res.json();
-        certificateForm.id.value = item.id;
-        certificateForm.certificate_code.value = item.certificate_code;
-        certificateForm.student_id.value = item.student_id || '';
-        certificateForm.course_id.value = item.course_id || '';
-        certificateForm.instructor_id.value = item.instructor_id || '';
-        certificateForm.issue_date.value = item.issue_date || '';
-        certificateForm.start_date.value = item.start_date || '';
-        certificateForm.end_date.value = item.end_date || '';
-        certificateForm.status.value = item.status || '';
-        formTitle.textContent = @json(__('Editar certificado'));
-        formContainer.classList.remove('hidden');
+        try {
+            const item = await fetchJson('{{ route("api.certificates.show", ":id") }}'.replace(':id', id));
+            certificateForm.id.value = item.id;
+            certificateForm.certificate_code.value = item.certificate_code;
+            certificateForm.student_id.value = item.student_id || '';
+            certificateForm.course_id.value = item.course_id || '';
+            certificateForm.instructor_id.value = item.instructor_id || '';
+            certificateForm.issue_date.value = item.issue_date || '';
+            certificateForm.start_date.value = item.start_date || '';
+            certificateForm.end_date.value = item.end_date || '';
+            certificateForm.status.value = item.status || '';
+            formTitle.textContent = @json(__('Editar certificado'));
+            formContainer.classList.remove('hidden');
+        } catch (err) {
+            alert(@json(__('Erro ao buscar dados do certificado')));
+            console.error(err);
+        }
     }
 
     if (e.target.classList.contains('deleteBtn')) {
         if (!confirm(@json(__('Excluir certificado?')))) return;
         const id = e.target.dataset.id;
-        await fetch('{{ route("api.certificates.destroy", ":id") }}'.replace(':id', id), {
-            method: 'DELETE',
-            headers: {
-                'X-CSRF-TOKEN': token,
-                'Accept': 'application/json'
-            },
-            credentials: 'same-origin'
-        });
-        fetchCertificates();
+        try {
+            await fetch('{{ route("api.certificates.destroy", ":id") }}'.replace(':id', id), {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': token,
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin'
+            });
+            fetchCertificates();
+        } catch (err) {
+            console.error('Failed to delete certificate', err);
+            alert(@json(__('Erro ao excluir certificado')));
+        }
     }
 
     if (e.target.classList.contains('viewBtn')) {
         const code = e.target.dataset.code;
-        const res = await fetch('{{ route("api.certificates.code.show", ":code") }}'.replace(':code', code));
-        const data = await res.json();
-        detailPre.textContent = JSON.stringify(data, null, 2);
-        viewModal.classList.toggle('hidden');
+        try {
+            const data = await fetchJson('{{ route("api.certificates.code.show", ":code") }}'.replace(':code', code));
+            detailPre.textContent = JSON.stringify(data, null, 2);
+            viewModal.classList.toggle('hidden');
+        } catch (err) {
+            console.error('Failed to load certificate details', err);
+            alert(@json(__('Erro ao carregar detalhes')));
+        }
     }
 });
 

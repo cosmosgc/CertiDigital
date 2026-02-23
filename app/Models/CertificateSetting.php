@@ -12,7 +12,6 @@ class CertificateSetting extends Model
         'frame_color',
         'border_width',
         'font_family',
-        'background_image_url',
         'title',
         'signature_max_width',
         'watermark_opacity',

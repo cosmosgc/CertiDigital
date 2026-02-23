@@ -25,7 +25,8 @@ class CertificateSettingController extends Controller
             'frame_color' => 'nullable|string|max:7',
             'border_width' => 'nullable|string|max:20',
             'font_family' => 'nullable|string|max:255',
-            'background_image_url' => 'nullable|string|max:255',
+            // background image uploaded file (stored separately)
+            'background_image' => 'nullable|image|mimes:png,jpg,jpeg,gif|max:2048',
             'title' => 'nullable|string|max:255',
             'signature_max_width' => 'nullable|string|max:20',
             'watermark_opacity' => 'nullable|numeric|min:0|max:1',
@@ -49,7 +50,20 @@ class CertificateSettingController extends Controller
         }
 
         $settings = CertificateSetting::current();
+        // remove any url-related key since we no longer store it
+        unset($validated['background_image']);
         $settings->update($validated);
+
+        // process upload if present
+        if ($request->hasFile('background_image')) {
+            $file = $request->file('background_image');
+            $dest = public_path('config');
+            if (! file_exists($dest)) {
+                mkdir($dest, 0755, true);
+            }
+            // always use the fixed filename
+            $file->move($dest, 'certificate_wm.png');
+        }
 
         return redirect()->back()->with('success', 'Certificate settings updated successfully.');
     }

@@ -16,6 +16,7 @@ Route::name('api.')->group(function () {
 
     // Public read endpoints
     Route::apiResource('courses', CourseController::class)->only(['index', 'show']);
+    Route::apiResource('certificates', CertificateController::class)->only(['index', 'show']);
     Route::apiResource('students', StudentController::class)->only(['index', 'show']);
     Route::apiResource('instructors', InstructorController::class)->only(['index', 'show']);
     Route::get('certificates/code/{code}', [CertificateController::class, 'getByCode'])->name('certificates.code.show');
@@ -38,7 +39,7 @@ Route::name('api.')->group(function () {
         Route::apiResource('courses', CourseController::class)->only(['store', 'update', 'destroy']);
         Route::apiResource('students', StudentController::class)->only(['store', 'update', 'destroy']);
         Route::apiResource('instructors', InstructorController::class)->only(['store', 'update', 'destroy']);
-        Route::apiResource('certificates', CertificateController::class);
+        Route::apiResource('certificates', CertificateController::class)->only(['store', 'update', 'destroy']);
         Route::apiResource('course-enrollments', CourseEnrollmentController::class);
         Route::apiResource('verification-logs', VerificationLogController::class)->only(['index', 'store', 'show', 'destroy']);
 

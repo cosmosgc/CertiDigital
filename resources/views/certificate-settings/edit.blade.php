@@ -21,7 +21,7 @@
             </div>
         @endif
 
-        <form action="{{ route('certificate-settings.update') }}" method="POST" class="space-y-6">
+        <form action="{{ route('certificate-settings.update') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
             @csrf
             @method('PUT')
 
@@ -48,13 +48,14 @@
                 <div class="flex items-center gap-3">
                     <input 
                         type="color" 
-                        id="frame_color" 
+                        id="frame_color_picker" 
                         name="frame_color" 
                         value="{{ old('frame_color', $settings->frame_color) }}"
                         class="h-10 w-20 border border-gray-300 rounded cursor-pointer"
                     />
                     <input 
                         type="text" 
+                        id="frame_color_text" 
                         name="frame_color" 
                         value="{{ old('frame_color', $settings->frame_color) }}"
                         class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -131,20 +132,22 @@
                 </div>
             </div>
 
-            <!-- Background Image URL -->
+            <!-- Background Image Upload -->
             <div>
-                <label for="background_image_url" class="block text-sm font-medium text-gray-700 mb-2">
-                    URL da imagem de fundo (Opcional)
+                <label for="background_image" class="block text-sm font-medium text-gray-700 mb-2">
+                    Imagem de fundo (Opcional, será salva em <code>public/config/certificate_wm.png</code>)
                 </label>
-                <input 
-                    type="text" 
-                    id="background_image_url" 
-                    name="background_image_url" 
-                    value="{{ old('background_image_url', $settings->background_image_url) }}"
+                <input
+                    type="file"
+                    id="background_image"
+                    name="background_image"
+                    accept="image/*"
                     class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="/images/certificate-bg.jpg"
                 />
-                <p class="text-sm text-gray-500 mt-1">Use caminho público como /images/certificate-bg.jpg</p>
+                <p class="text-sm text-gray-500 mt-1">Aplicação sempre utilizará <code>/config/certificate_wm.png</code></p>
+                @if(file_exists(public_path('config/certificate_wm.png')))
+                    <img src="{{ asset('config/certificate_wm.png') }}" alt="Preview" class="mt-2 max-h-40">
+                @endif
             </div>
 
             <!-- Custom CSS -->
@@ -187,6 +190,22 @@
 
     opacityInput.addEventListener('input', (e) => {
         opacityValue.textContent = parseFloat(e.target.value).toFixed(2);
+    });
+
+    // sync frame color picker and text input
+    const framePicker = document.getElementById('frame_color_picker');
+    const frameText = document.getElementById('frame_color_text');
+
+    framePicker.addEventListener('input', (e) => {
+        frameText.value = e.target.value;
+    });
+
+    frameText.addEventListener('input', (e) => {
+        // if user types a valid hex, update picker
+        const val = e.target.value.trim();
+        if (/^#([0-9A-Fa-f]{3}){1,2}$/.test(val)) {
+            framePicker.value = val;
+        }
     });
 </script>
 @endsection
