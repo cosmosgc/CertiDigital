@@ -33,7 +33,8 @@ class UserController extends Controller
     {
         // Prevent an admin from revoking their own admin role via this endpoint
         $current = $request->user();
-        if ($user->id === $current->id && $user->hasRole('admin')) {
+        // Guard against unauthenticated requests where $request->user() may be null.
+        if ($current && $user->id === $current->id && $user->hasRole('admin')) {
             return response()->json([
                 'message' => 'You cannot revoke your own admin role.'
             ], Response::HTTP_FORBIDDEN);
