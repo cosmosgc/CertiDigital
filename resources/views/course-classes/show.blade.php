@@ -24,10 +24,14 @@
                 <p id="courseTitle" class="mt-3 text-lg font-semibold text-gray-900"></p>
             </div>
             <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{{ __('Instrutor') }}</p>
+                <p id="instructorName" class="mt-3 text-lg font-semibold text-gray-900"></p>
+            </div>
+            <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{{ __('Alunos inscritos') }}</p>
                 <p id="studentCount" class="mt-3 text-3xl font-semibold text-gray-900">0</p>
             </div>
-            <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+            <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-200 md:col-span-3">
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{{ __('Concluíram') }}</p>
                 <p id="completedCount" class="mt-3 text-3xl font-semibold text-gray-900">0</p>
             </div>
@@ -59,6 +63,7 @@
                             <th class="p-3">{{ __('Progresso') }}</th>
                             <th class="p-3">{{ __('Nota') }}</th>
                             <th class="p-3">{{ __('Status') }}</th>
+                            <th class="p-3">{{ __('Ações') }}</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -73,11 +78,14 @@ const classId = @json($courseClass->id);
 const className = document.getElementById('className');
 const classDescription = document.getElementById('classDescription');
 const courseTitle = document.getElementById('courseTitle');
+const instructorName = document.getElementById('instructorName');
 const studentCount = document.getElementById('studentCount');
 const completedCount = document.getElementById('completedCount');
 const studentGrid = document.getElementById('studentGrid');
 const detailsTableBody = document.querySelector('#studentDetailsTable tbody');
 const refreshButton = document.getElementById('refreshButton');
+const emitBaseUrl = @json(route('certificates.emit'));
+const defaultIssueDate = @json(now()->toDateString());
 let detailsTable = null;
 
 async function fetchClassData() {
@@ -103,6 +111,7 @@ function renderClass(data) {
     className.textContent = data.name;
     classDescription.textContent = data.description || @json(__('Sem descrição cadastrada para esta turma.'));
     courseTitle.textContent = data.course?.title || '';
+    instructorName.textContent = data.instructor?.full_name || @json(__('Não definido'));
     studentCount.textContent = enrollments.length;
     completedCount.textContent = completed;
 
@@ -119,6 +128,9 @@ function renderClass(data) {
 
     enrollments.forEach(enrollment => {
         const progress = Number(enrollment.progress_percent ?? 0);
+        const enrollmentStartDate = enrollment.created_at
+            ? new Date(enrollment.created_at).toISOString().slice(0, 10)
+            : defaultIssueDate;
         const card = document.createElement('article');
         card.className = 'rounded-2xl border border-gray-200 bg-gradient-to-b from-white to-gray-50 p-5 shadow-sm';
         card.innerHTML = `
@@ -147,6 +159,16 @@ function renderClass(data) {
 
         const tr = document.createElement('tr');
         tr.className = 'border-t border-gray-100';
+        const emitUrl = new URL(emitBaseUrl, window.location.origin);
+        emitUrl.searchParams.set('student_id', enrollment.student_id);
+        emitUrl.searchParams.set('course_id', data.course_id);
+        if (data.instructor_id) {
+            emitUrl.searchParams.set('instructor_id', data.instructor_id);
+        }
+        emitUrl.searchParams.set('issue_date', defaultIssueDate);
+        emitUrl.searchParams.set('start_date', enrollmentStartDate);
+        emitUrl.searchParams.set('status', 'valid');
+
         tr.innerHTML = `
             <td class="p-3">
                 <div class="font-medium text-gray-900">${enrollment.student?.full_name || ''}</div>
@@ -164,6 +186,11 @@ function renderClass(data) {
                 <span class="rounded-full px-3 py-1 text-xs font-semibold ${enrollment.completed ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
                     ${enrollment.completed ? @json(__('Concluído')) : @json(__('Em andamento'))}
                 </span>
+            </td>
+            <td class="p-3">
+                <a href="${emitUrl.toString()}" class="inline-flex items-center rounded-xl bg-pink-600 px-3 py-2 text-sm font-medium text-white shadow-sm">
+                    {{ __('Emitir certificado') }}
+                </a>
             </td>
         `;
         detailsTableBody.appendChild(tr);

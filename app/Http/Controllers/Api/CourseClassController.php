@@ -12,7 +12,7 @@ class CourseClassController extends Controller
 {
     public function index()
     {
-        $classes = CourseClass::with(['course', 'students'])->paginate(15);
+        $classes = CourseClass::with(['course', 'instructor', 'students'])->paginate(15);
 
         return response()->json($classes, Response::HTTP_OK);
     }
@@ -21,6 +21,7 @@ class CourseClassController extends Controller
     {
         $data = $request->validate([
             'course_id' => 'required|exists:courses,id',
+            'instructor_id' => 'nullable|exists:instructors,id',
             'name' => [
                 'required',
                 'string',
@@ -35,7 +36,7 @@ class CourseClassController extends Controller
         $courseClass = CourseClass::create($data);
 
         return response()->json(
-            $courseClass->load(['course', 'students']),
+            $courseClass->load(['course', 'instructor', 'students']),
             Response::HTTP_CREATED
         );
     }
@@ -43,7 +44,7 @@ class CourseClassController extends Controller
     public function show(CourseClass $courseClass)
     {
         return response()->json(
-            $courseClass->load(['course', 'enrollments.student', 'students']),
+            $courseClass->load(['course', 'instructor', 'enrollments.student', 'students']),
             Response::HTTP_OK
         );
     }
@@ -52,6 +53,7 @@ class CourseClassController extends Controller
     {
         $data = $request->validate([
             'course_id' => 'sometimes|required|exists:courses,id',
+            'instructor_id' => 'nullable|exists:instructors,id',
             'name' => [
                 'sometimes',
                 'required',
@@ -70,7 +72,7 @@ class CourseClassController extends Controller
         $courseClass->update($data);
 
         return response()->json(
-            $courseClass->load(['course', 'students']),
+            $courseClass->load(['course', 'instructor', 'students']),
             Response::HTTP_OK
         );
     }

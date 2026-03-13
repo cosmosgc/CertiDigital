@@ -11,6 +11,7 @@
             </div>
             <div class="rounded-2xl bg-gray-50 px-4 py-3 text-sm text-gray-600 ring-1 ring-gray-200">
                 <div><strong>{{ __('Curso:') }}</strong> <span id="courseTitle"></span></div>
+                <div><strong>{{ __('Instrutor:') }}</strong> <span id="instructorName"></span></div>
                 <div><strong>{{ __('Alunos:') }}</strong> <span id="studentCount">0</span></div>
             </div>
         </div>
@@ -73,6 +74,7 @@ const className = document.getElementById('className');
 const classMeta = document.getElementById('classMeta');
 const classDescription = document.getElementById('classDescription');
 const courseTitle = document.getElementById('courseTitle');
+const instructorName = document.getElementById('instructorName');
 const studentCount = document.getElementById('studentCount');
 const enrollmentForm = document.getElementById('enrollmentForm');
 const cancelEditBtn = document.getElementById('cancelEdit');
@@ -131,6 +133,7 @@ function renderClassData() {
     className.textContent = classData.name;
     classMeta.textContent = `{{ __('Turma ID') }} #${classData.id}`;
     courseTitle.textContent = classData.course?.title || '';
+    instructorName.textContent = classData.instructor?.full_name || @json(__('Não definido'));
     classDescription.textContent = classData.description || @json(__('Sem descrição cadastrada.'));
     studentCount.textContent = classData.enrollments?.length || 0;
 

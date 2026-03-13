@@ -19,6 +19,7 @@
                         <th class="p-2">{{ __('ID') }}</th>
                         <th class="p-2">{{ __('Turma') }}</th>
                         <th class="p-2">{{ __('Curso') }}</th>
+                        <th class="p-2">{{ __('Instrutor') }}</th>
                         <th class="p-2">{{ __('Alunos') }}</th>
                         <th class="p-2">{{ __('Ações') }}</th>
                     </tr>
@@ -35,6 +36,10 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700">{{ __('Curso') }}</label>
                     <select name="course_id" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm"></select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">{{ __('Instrutor') }}</label>
+                    <select name="instructor_id" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm"></select>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">{{ __('Nome da turma') }}</label>
@@ -65,6 +70,7 @@ const showRouteTemplate = @json(route('course-classes.show', ['courseClass' => '
 const manageRouteTemplate = @json(route('course-classes.manage', ['courseClass' => '__ID__']));
 let courseClassesDataTable = null;
 let courses = [];
+let instructors = [];
 
 async function fetchAllPages(url) {
     const items = [];
@@ -92,9 +98,24 @@ function populateCourseOptions(selectedId = '') {
     `;
 }
 
+function populateInstructorOptions(selectedId = '') {
+    courseClassForm.instructor_id.innerHTML = `
+        <option value="">{{ __('Selecione um instrutor') }}</option>
+        ${instructors.map(instructor => `
+            <option value="${instructor.id}" ${String(instructor.id) === String(selectedId) ? 'selected' : ''}>${instructor.full_name}</option>
+        `).join('')}
+    `;
+}
+
 async function loadDependencies() {
-    courses = await fetchAllPages('{{ route("api.courses.index") }}');
+    const [coursesData, instructorsData] = await Promise.all([
+        fetchAllPages('{{ route("api.courses.index") }}'),
+        fetchAllPages('{{ route("api.instructors.index") }}')
+    ]);
+    courses = coursesData;
+    instructors = instructorsData;
     populateCourseOptions();
+    populateInstructorOptions();
 }
 
 async function fetchCourseClasses() {
@@ -111,6 +132,7 @@ function renderCourseClasses(list) {
             <td class="p-2">${item.id}</td>
             <td class="p-2">${item.name}</td>
             <td class="p-2">${item.course?.title || ''}</td>
+            <td class="p-2">${item.instructor?.full_name || ''}</td>
             <td class="p-2">${item.students?.length || 0}</td>
             <td class="p-2 flex flex-wrap gap-2">
                 <a href="${showRouteTemplate.replace('__ID__', item.id)}" class="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white">{{ __('Ver turma') }}</a>
@@ -133,6 +155,7 @@ document.getElementById('showCreate').addEventListener('click', () => {
     courseClassForm.reset();
     courseClassForm.id.value = '';
     populateCourseOptions();
+    populateInstructorOptions();
     formTitle.textContent = @json(__('Criar turma'));
     formContainer.classList.remove('hidden');
 });
@@ -153,6 +176,7 @@ tableBody.addEventListener('click', async (e) => {
         courseClassForm.name.value = item.name;
         courseClassForm.description.value = item.description || '';
         populateCourseOptions(item.course_id);
+        populateInstructorOptions(item.instructor_id);
         formTitle.textContent = @json(__('Editar turma'));
         formContainer.classList.remove('hidden');
     }
@@ -196,6 +220,7 @@ courseClassForm.addEventListener('submit', async (e) => {
         },
         body: JSON.stringify({
             course_id: courseClassForm.course_id.value,
+            instructor_id: courseClassForm.instructor_id.value || null,
             name: courseClassForm.name.value,
             description: courseClassForm.description.value || null,
             user_id: currentUserId
