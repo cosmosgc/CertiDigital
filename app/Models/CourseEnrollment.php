@@ -12,6 +12,7 @@ class CourseEnrollment extends Model
     protected $fillable = [
         'student_id',
         'course_id',
+        'course_class_id',
         'progress_percent',
         'grade',
         'completed',
@@ -34,5 +35,10 @@ class CourseEnrollment extends Model
     public function course()
     {
         return $this->belongsTo(Course::class);
+    }
+
+    public function courseClass()
+    {
+        return $this->belongsTo(CourseClass::class);
     }
 }

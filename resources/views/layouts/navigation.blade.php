@@ -36,6 +36,10 @@
                                 {{ __('Cursos') }}
                             </x-nav-link>
 
+                            <x-nav-link :href="route('course-classes.index')" :active="request()->routeIs('course-classes.*')">
+                                {{ __('Turmas') }}
+                            </x-nav-link>
+
                             <x-nav-link :href="route('certificates.index')" :active="request()->routeIs('certificates.*')">
                                 {{ __('Certificados') }}
                             </x-nav-link>
@@ -152,6 +156,9 @@
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('courses.index')" :active="request()->routeIs('courses.*')">
                         {{ __('Cursos') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('course-classes.index')" :active="request()->routeIs('course-classes.*')">
+                        {{ __('Turmas') }}
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('certificates.index')" :active="request()->routeIs('certificates.*')">
                         {{ __('Certificados') }}

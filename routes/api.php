@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\CourseController;
+use App\Http\Controllers\Api\CourseClassController;
 use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\InstructorController;
 use App\Http\Controllers\Api\CertificateController;
@@ -16,6 +17,7 @@ Route::name('api.')->group(function () {
 
     // Public read endpoints
     Route::apiResource('courses', CourseController::class)->only(['index', 'show']);
+    Route::apiResource('course-classes', CourseClassController::class)->only(['index', 'show']);
     Route::apiResource('certificates', CertificateController::class)->only(['index', 'show']);
     Route::apiResource('students', StudentController::class)->only(['index', 'show']);
     Route::apiResource('instructors', InstructorController::class)->only(['index', 'show']);
@@ -37,6 +39,7 @@ Route::name('api.')->group(function () {
     // Example using our new middleware:
     Route::middleware('admin.only')->group(function () {
         Route::apiResource('courses', CourseController::class)->only(['store', 'update', 'destroy']);
+        Route::apiResource('course-classes', CourseClassController::class)->only(['store', 'update', 'destroy']);
         Route::apiResource('students', StudentController::class)->only(['store', 'update', 'destroy']);
         Route::apiResource('instructors', InstructorController::class)->only(['store', 'update', 'destroy']);
         Route::apiResource('certificates', CertificateController::class)->only(['store', 'update', 'destroy']);

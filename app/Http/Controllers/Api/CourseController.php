@@ -11,7 +11,7 @@ class CourseController extends Controller
 {
     public function index()
     {
-        $courses = Course::with(['students', 'certificates'])->paginate(15);
+        $courses = Course::with(['classes.students', 'students', 'certificates'])->paginate(15);
 
         return response()->json($courses, Response::HTTP_OK);
     }
@@ -32,7 +32,7 @@ class CourseController extends Controller
 
     public function show(Course $course)
     {
-        $course->load(['students', 'certificates']);
+        $course->load(['classes.students', 'students', 'certificates']);
 
         return response()->json($course, Response::HTTP_OK);
     }

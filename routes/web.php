@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CertificateSettingController;
+use App\Models\CourseClass;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -25,6 +26,13 @@ Route::middleware('auth')->group(function () {
         Route::view('/students', 'students.index')->name('students.index');
         Route::view('/instructors', 'instructors.index')->name('instructors.index');
         Route::view('/courses', 'courses.index')->name('courses.index');
+        Route::view('/course-classes', 'course-classes.index')->name('course-classes.index');
+        Route::get('/course-classes/{courseClass}', function (CourseClass $courseClass) {
+            return view('course-classes.show', compact('courseClass'));
+        })->name('course-classes.show');
+        Route::get('/course-classes/{courseClass}/manage', function (CourseClass $courseClass) {
+            return view('course-classes.manage', compact('courseClass'));
+        })->name('course-classes.manage');
         Route::view('/certificates', 'certificates.index')->name('certificates.index');
 
         // Certificate settings routes

@@ -29,7 +29,8 @@ class AdminOnly
 
         if (! $user) {
             // not logged in at all
-            $user = \App\Models\User::find($request->user_id);
+            $requestUserId = $request->input('user_id') ?? $request->header('X-User-Id');
+            $user = \App\Models\User::find($requestUserId);
             if (! $user) {
                 // not logged in at all
                 throw new AuthenticationException;
