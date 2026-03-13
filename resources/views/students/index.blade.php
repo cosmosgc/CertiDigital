@@ -1,17 +1,20 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 ">
-    <div class="bg-white dark:bg-gray-800  overflow-hidden shadow-sm sm:rounded-lg p-6">
-        <div class="flex justify-between items-center">
-            <h2 class="text-xl font-semibold">{{ __('Alunos') }}</h2>
-            <button id="showCreate" class="px-4 py-2 bg-indigo-600 text-white rounded">{{ __('Novo aluno') }}</button>
+<div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <div class="overflow-hidden shadow-sm sm:rounded-2xl p-6">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h2 class="text-2xl font-semibold text-gray-900 dark:text-white">{{ __('Alunos') }}</h2>
+                <p class="mt-1 text-sm text-gray-500">{{ __('Cadastre, consulte e mantenha a base de alunos sempre organizada.') }}</p>
+            </div>
+            <button id="showCreate" class="rounded-xl bg-indigo-600 px-4 py-3 text-white shadow-sm">{{ __('Novo aluno') }}</button>
         </div>
 
-        <div class="mt-4">
+        <div class="bg-white mt-6 overflow-hidden rounded-2xl border border-gray-200">
             <table class="w-full table-auto" id="studentsTable">
                 <thead>
-                    <tr class="text-left">
+                    <tr class="bg-gray-50 text-left text-sm text-gray-600">
                         <th class="p-2">{{ __('ID') }}</th>
                         <th class="p-2">{{ __('Nome') }}</th>
                         <th class="p-2">{{ __('E-mail') }}</th>
@@ -25,26 +28,28 @@
 
         <!-- Create/Edit Form -->
         <div id="formContainer" class="mt-4 hidden">
-            <h3 id="formTitle" class="font-semibold"></h3>
-            <form id="studentForm" class="space-y-4">
+            <div class="rounded-2xl border border-dashed border-indigo-300 bg-indigo-50/50 p-5">
+            <h3 id="formTitle" class="text-lg font-semibold text-gray-900"></h3>
+            <form id="studentForm" class="mt-4 space-y-4">
                 <input type="hidden" name="id" />
                 <div>
-                    <label class="block text-sm font-medium">{{ __('Nome completo') }}</label>
-                    <input name="full_name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                    <label class="block text-sm font-medium text-gray-700">{{ __('Nome completo') }}</label>
+                    <input name="full_name" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
                 </div>
                 <div>
-                    <label class="block text-sm font-medium">{{ __('E-mail') }}</label>
-                    <input name="email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                    <label class="block text-sm font-medium text-gray-700">{{ __('E-mail') }}</label>
+                    <input name="email" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
                 </div>
                 <div>
-                    <label class="block text-sm font-medium">{{ __('Documento') }}</label>
-                    <input name="document_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                    <label class="block text-sm font-medium text-gray-700">{{ __('Documento') }}</label>
+                    <input name="document_id" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
                 </div>
                 <div class="flex gap-2">
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded">{{ __('Salvar') }}</button>
-                    <button type="button" id="cancelBtn" class="px-4 py-2 bg-gray-300 rounded">{{ __('Cancelar') }}</button>
+                    <button type="submit" class="rounded-xl bg-indigo-600 px-4 py-2 text-white">{{ __('Salvar') }}</button>
+                    <button type="button" id="cancelBtn" class="rounded-xl bg-white px-4 py-2 text-gray-700 ring-1 ring-gray-300">{{ __('Cancelar') }}</button>
                 </div>
             </form>
+            </div>
         </div>
     </div>
 </div>

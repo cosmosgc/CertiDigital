@@ -50,7 +50,7 @@
                 <p class="mt-1 text-sm text-gray-500">{{ __('Lista completa com contato, nota, progresso e status de conclusão.') }}</p>
             </div>
 
-            <div class="mt-6 overflow-hidden rounded-2xl border border-gray-200">
+            <div class="bg-white mt-6 overflow-hidden rounded-2xl border border-gray-200">
                 <table class="w-full table-auto" id="studentDetailsTable">
                     <thead class="bg-gray-50 text-left text-sm text-gray-600">
                         <tr>

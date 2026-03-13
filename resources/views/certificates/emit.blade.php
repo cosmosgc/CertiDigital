@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
-    <div class="bg-white dark:bg-gray-800  overflow-hidden shadow-sm  sm:rounded-lg p-6">
+    <div class="bg-white   overflow-hidden shadow-sm  sm:rounded-lg p-6">
         <h2 class="text-xl font-semibold">{{ __('Emitir certificado') }}</h2>
 
         <form id="emitForm" class="mt-4 space-y-4">

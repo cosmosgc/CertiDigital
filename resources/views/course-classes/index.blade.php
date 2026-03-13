@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-2xl p-6">
+    <div class="overflow-hidden shadow-sm sm:rounded-2xl p-6">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
                 <span class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">{{ __('Painel do professor') }}</span>
@@ -12,7 +12,7 @@
             <button id="showCreate" class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-3 font-medium text-white shadow-sm transition hover:bg-emerald-700">{{ __('Nova turma') }}</button>
         </div>
 
-        <div class="mt-6 overflow-hidden rounded-2xl border border-gray-200">
+        <div class="bg-white bg-white mt-6 overflow-hidden rounded-2xl border border-gray-200">
             <table class="w-full table-auto" id="courseClassesTable">
                 <thead>
                     <tr class="text-left bg-gray-50 text-sm text-gray-600">

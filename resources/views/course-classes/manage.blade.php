@@ -2,14 +2,14 @@
 
 @section('content')
 <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6 space-y-6">
+    <div class="overflow-hidden shadow-sm sm:rounded-2xl p-6 space-y-6">
         <div class="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
             <div>
                 <a href="{{ route('course-classes.index') }}" class="text-sm text-indigo-600 hover:text-indigo-800">{{ __('Voltar para turmas') }}</a>
                 <h2 id="className" class="text-2xl font-semibold mt-1"></h2>
                 <p id="classMeta" class="text-sm text-gray-500"></p>
             </div>
-            <div class="rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-600">
+            <div class="rounded-2xl bg-gray-50 px-4 py-3 text-sm text-gray-600 ring-1 ring-gray-200">
                 <div><strong>{{ __('Curso:') }}</strong> <span id="courseTitle"></span></div>
                 <div><strong>{{ __('Alunos:') }}</strong> <span id="studentCount">0</span></div>
             </div>
@@ -17,22 +17,22 @@
 
         <div id="classDescription" class="text-sm text-gray-600"></div>
 
-        <div class="border rounded-lg p-4">
-            <h3 class="font-semibold">{{ __('Adicionar aluno à turma') }}</h3>
+        <div class="rounded-2xl border border-dashed border-emerald-300 bg-emerald-50/50 p-5">
+            <h3 class="text-lg font-semibold text-gray-900">{{ __('Adicionar aluno à turma') }}</h3>
             <form id="enrollmentForm" class="mt-4 space-y-4">
                 <input type="hidden" name="enrollment_id" />
                 <div class="grid gap-4 md:grid-cols-2">
                     <div>
-                        <label class="block text-sm font-medium">{{ __('Aluno') }}</label>
-                        <select name="student_id" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"></select>
+                        <label class="block text-sm font-medium text-gray-700">{{ __('Aluno') }}</label>
+                        <select name="student_id" required class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm"></select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium">{{ __('Progresso (%)') }}</label>
-                        <input type="number" min="0" max="100" name="progress_percent" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                        <label class="block text-sm font-medium text-gray-700">{{ __('Progresso (%)') }}</label>
+                        <input type="number" min="0" max="100" name="progress_percent" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
                     </div>
                     <div>
-                        <label class="block text-sm font-medium">{{ __('Nota') }}</label>
-                        <input type="number" min="0" max="100" step="0.01" name="grade" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                        <label class="block text-sm font-medium text-gray-700">{{ __('Nota') }}</label>
+                        <input type="number" min="0" max="100" step="0.01" name="grade" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
                     </div>
                     <div class="flex items-center gap-2 pt-7">
                         <input type="checkbox" name="completed" id="completed" class="rounded border-gray-300 text-indigo-600 shadow-sm">
@@ -40,16 +40,16 @@
                     </div>
                 </div>
                 <div class="flex gap-2">
-                    <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded">{{ __('Salvar matrícula') }}</button>
-                    <button type="button" id="cancelEdit" class="px-4 py-2 bg-gray-300 rounded hidden">{{ __('Cancelar edição') }}</button>
+                    <button type="submit" class="rounded-xl bg-emerald-600 px-4 py-2 text-white">{{ __('Salvar matrícula') }}</button>
+                    <button type="button" id="cancelEdit" class="hidden rounded-xl bg-white px-4 py-2 text-gray-700 ring-1 ring-gray-300">{{ __('Cancelar edição') }}</button>
                 </div>
             </form>
         </div>
 
-        <div>
+        <div class="overflow-hidden rounded-2xl border border-gray-200">
             <table class="w-full table-auto" id="classStudentsTable">
                 <thead>
-                    <tr class="text-left">
+                    <tr class="bg-gray-50 text-left text-sm text-gray-600">
                         <th class="p-2">{{ __('ID matrícula') }}</th>
                         <th class="p-2">{{ __('Aluno') }}</th>
                         <th class="p-2">{{ __('E-mail') }}</th>
