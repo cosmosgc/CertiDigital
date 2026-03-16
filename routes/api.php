@@ -4,6 +4,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\CourseClassController;
+use App\Http\Controllers\Api\CourseClassAttendanceController;
+use App\Http\Controllers\Api\CourseClassAttendanceRecordController;
 use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\InstructorController;
 use App\Http\Controllers\Api\CertificateController;
@@ -40,6 +42,11 @@ Route::name('api.')->group(function () {
     Route::middleware('admin.only')->group(function () {
         Route::apiResource('courses', CourseController::class)->only(['store', 'update', 'destroy']);
         Route::apiResource('course-classes', CourseClassController::class)->only(['store', 'update', 'destroy']);
+        Route::post('course-classes/{course_class}/attendances', [CourseClassAttendanceController::class, 'store'])->name('course-classes.attendances.store');
+        Route::put('course-class-attendances/{course_class_attendance}', [CourseClassAttendanceController::class, 'update'])->name('course-class-attendances.update');
+        Route::delete('course-class-attendances/{course_class_attendance}', [CourseClassAttendanceController::class, 'destroy'])->name('course-class-attendances.destroy');
+        Route::post('course-class-attendances/{course_class_attendance}/records', [CourseClassAttendanceRecordController::class, 'store'])->name('course-class-attendances.records.store');
+        Route::delete('course-class-attendance-records/{course_class_attendance_record}', [CourseClassAttendanceRecordController::class, 'destroy'])->name('course-class-attendance-records.destroy');
         Route::apiResource('students', StudentController::class)->only(['store', 'update', 'destroy']);
         Route::apiResource('instructors', InstructorController::class)->only(['store', 'update', 'destroy']);
         Route::apiResource('certificates', CertificateController::class)->only(['store', 'update', 'destroy']);

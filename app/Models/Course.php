@@ -33,7 +33,7 @@ class Course extends Model
     public function students()
     {
         return $this->belongsToMany(Student::class, 'course_enrollments')
-                    ->withPivot(['course_class_id', 'progress_percent', 'grade', 'completed'])
+                    ->withPivot(['course_class_id', 'progress_hours', 'grade', 'completed'])
                     ->withTimestamps();
     }
 

@@ -34,7 +34,12 @@ class CourseClass extends Model
     public function students()
     {
         return $this->belongsToMany(Student::class, 'course_enrollments')
-            ->withPivot(['course_id', 'progress_percent', 'grade', 'completed'])
+            ->withPivot(['course_id', 'progress_hours', 'grade', 'completed'])
             ->withTimestamps();
+    }
+
+    public function attendances()
+    {
+        return $this->hasMany(CourseClassAttendance::class)->orderBy('attendance_date')->orderBy('id');
     }
 }

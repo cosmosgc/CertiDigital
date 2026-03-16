@@ -12,7 +12,7 @@ class CourseClassController extends Controller
 {
     public function index()
     {
-        $classes = CourseClass::with(['course', 'instructor', 'students'])->paginate(15);
+        $classes = CourseClass::with(['course', 'instructor', 'students', 'attendances.records'])->paginate(15);
 
         return response()->json($classes, Response::HTTP_OK);
     }
@@ -44,7 +44,13 @@ class CourseClassController extends Controller
     public function show(CourseClass $courseClass)
     {
         return response()->json(
-            $courseClass->load(['course', 'instructor', 'enrollments.student', 'students']),
+            $courseClass->load([
+                'course',
+                'instructor',
+                'enrollments.student',
+                'students',
+                'attendances.records.student',
+            ]),
             Response::HTTP_OK
         );
     }
@@ -72,7 +78,7 @@ class CourseClassController extends Controller
         $courseClass->update($data);
 
         return response()->json(
-            $courseClass->load(['course', 'instructor', 'students']),
+            $courseClass->load(['course', 'instructor', 'students', 'attendances.records.student']),
             Response::HTTP_OK
         );
     }

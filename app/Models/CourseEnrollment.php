@@ -13,12 +13,13 @@ class CourseEnrollment extends Model
         'student_id',
         'course_id',
         'course_class_id',
-        'progress_percent',
+        'progress_hours',
         'grade',
         'completed',
     ];
 
     protected $casts = [
+        'progress_hours' => 'decimal:2',
         'completed' => 'boolean',
         'grade' => 'decimal:2',
     ];

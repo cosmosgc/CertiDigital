@@ -1,0 +1,226 @@
+@extends('layouts.app')
+
+@section('content')
+<div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <div class="space-y-6">
+        <section class="overflow-hidden rounded-[28px] bg-gradient-to-r from-slate-800 via-cyan-800 to-teal-700 px-6 py-8 text-white shadow-xl">
+            <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                <div class="max-w-3xl">
+                    <a href="{{ route('course-classes.show', $courseClass) }}" class="text-sm text-cyan-100/90 hover:text-white">{{ __('Voltar para a turma') }}</a>
+                    <p class="mt-4 text-xs font-semibold uppercase tracking-[0.25em] text-cyan-100">{{ __('Relatório de presença') }}</p>
+                    <h1 id="reportTitle" class="mt-2 text-3xl font-semibold"></h1>
+                    <p id="reportMeta" class="mt-3 max-w-2xl text-sm text-cyan-50/90"></p>
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    <a href="{{ route('course-classes.manage', $courseClass) }}" class="inline-flex items-center rounded-xl bg-white px-4 py-3 text-sm font-semibold text-cyan-800 shadow">{{ __('Gerenciar turma') }}</a>
+                    <button id="printButton" type="button" class="inline-flex items-center rounded-xl bg-amber-400 px-4 py-3 text-sm font-semibold text-slate-900 shadow">{{ __('Imprimir relatório') }}</button>
+                    <button id="refreshButton" type="button" class="inline-flex items-center rounded-xl border border-white/25 bg-white/10 px-4 py-3 text-sm font-semibold text-white backdrop-blur">{{ __('Atualizar dados') }}</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="grid gap-4 md:grid-cols-3">
+            <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{{ __('Alunos') }}</p>
+                <p id="studentCount" class="mt-3 text-3xl font-semibold text-gray-900">0</p>
+            </div>
+            <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{{ __('Sessões') }}</p>
+                <p id="attendanceCount" class="mt-3 text-3xl font-semibold text-gray-900">0</p>
+            </div>
+            <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{{ __('Carga horária') }}</p>
+                <p id="workloadHours" class="mt-3 text-3xl font-semibold text-gray-900">0h</p>
+            </div>
+        </section>
+
+        <section class="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-gray-200">
+            <div id="printSection">
+            <div class="flex flex-col gap-4 border-b border-gray-200 pb-4 print:border-b print:pb-3">
+                <h2 class="text-xl font-semibold text-gray-900">{{ __('Matriz de presença') }}</h2>
+                <p class="mt-1 text-sm text-gray-500">{{ __('Cada linha representa uma sessão e cada coluna mostra a presença do aluno.') }}</p>
+                <div id="printSummary" class="grid gap-3 md:grid-cols-4">
+                    <div class="rounded-2xl bg-gray-50 p-4 ring-1 ring-gray-200">
+                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{{ __('Curso') }}</p>
+                        <p id="printCourseTitle" class="mt-2 text-sm font-semibold text-gray-900"></p>
+                    </div>
+                    <div class="rounded-2xl bg-gray-50 p-4 ring-1 ring-gray-200">
+                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{{ __('Alunos') }}</p>
+                        <p id="printStudentCount" class="mt-2 text-sm font-semibold text-gray-900"></p>
+                    </div>
+                    <div class="rounded-2xl bg-gray-50 p-4 ring-1 ring-gray-200">
+                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{{ __('Sessões') }}</p>
+                        <p id="printAttendanceCount" class="mt-2 text-sm font-semibold text-gray-900"></p>
+                    </div>
+                    <div class="rounded-2xl bg-gray-50 p-4 ring-1 ring-gray-200">
+                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{{ __('Carga horária') }}</p>
+                        <p id="printWorkloadHours" class="mt-2 text-sm font-semibold text-gray-900"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-6 overflow-x-auto">
+                <table class="min-w-full table-auto border-separate border-spacing-0" id="attendanceReportTable">
+                    <thead id="attendanceReportHead"></thead>
+                    <tbody id="attendanceReportBody"></tbody>
+                </table>
+            </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<style>
+@media print {
+    body {
+        background: #fff !important;
+    }
+
+    body * {
+        visibility: hidden;
+    }
+
+    #printSection,
+    #printSection * {
+        visibility: visible;
+    }
+
+    #printSection {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+
+    #printButton,
+    #refreshButton {
+        display: none !important;
+    }
+
+    #attendanceReportTable {
+        font-size: 12px;
+    }
+
+    #attendanceReportTable th,
+    #attendanceReportTable td {
+        page-break-inside: avoid;
+    }
+
+    #printSummary {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+</style>
+
+<script>
+const classId = @json($courseClass->id);
+const reportTitle = document.getElementById('reportTitle');
+const reportMeta = document.getElementById('reportMeta');
+const studentCount = document.getElementById('studentCount');
+const attendanceCount = document.getElementById('attendanceCount');
+const workloadHours = document.getElementById('workloadHours');
+const printCourseTitle = document.getElementById('printCourseTitle');
+const printStudentCount = document.getElementById('printStudentCount');
+const printAttendanceCount = document.getElementById('printAttendanceCount');
+const printWorkloadHours = document.getElementById('printWorkloadHours');
+const attendanceReportHead = document.getElementById('attendanceReportHead');
+const attendanceReportBody = document.getElementById('attendanceReportBody');
+const refreshButton = document.getElementById('refreshButton');
+const printButton = document.getElementById('printButton');
+const attendanceShowBaseUrl = @json(route('course-class-attendances.show', ['courseClass' => $courseClass, 'courseClassAttendance' => '__ATTENDANCE__']));
+const enrollmentShowBaseUrl = @json(route('course-class-enrollments.show', ['courseClass' => $courseClass, 'courseEnrollment' => '__ENROLLMENT__']));
+
+function formatHours(value) {
+    const numeric = Number(value ?? 0);
+    return `${numeric % 1 === 0 ? numeric.toFixed(0) : numeric.toFixed(2)}h`;
+}
+
+function formatDateInputValue(value) {
+    return value ? String(value).slice(0, 10) : '';
+}
+
+async function fetchReportData() {
+    const res = await fetch(`{{ route("api.course-classes.show", ["course_class" => "__ID__"]) }}`.replace('__ID__', classId), {
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json' }
+    });
+
+    const data = await res.json();
+    renderReport(data);
+}
+
+function renderReport(data) {
+    const attendances = data.attendances || [];
+    const enrollments = data.enrollments || [];
+
+    reportTitle.textContent = data.name;
+    reportMeta.textContent = `${data.course?.title || ''} • ${data.instructor?.full_name || @json(__('Instrutor não definido'))}`;
+    studentCount.textContent = enrollments.length;
+    attendanceCount.textContent = attendances.length;
+    workloadHours.textContent = formatHours(data.course?.workload_hours || 0);
+    printCourseTitle.textContent = data.course?.title || '-';
+    printStudentCount.textContent = String(enrollments.length);
+    printAttendanceCount.textContent = String(attendances.length);
+    printWorkloadHours.textContent = formatHours(data.course?.workload_hours || 0);
+
+    attendanceReportHead.innerHTML = `
+        <tr>
+            <th class="sticky left-0 z-10 bg-white p-3 text-left text-sm font-semibold text-gray-700 ring-1 ring-gray-200">{{ __('Sessão') }}</th>
+            ${enrollments.map(enrollment => `
+                <th class="min-w-[150px] bg-white p-3 text-left text-sm font-semibold text-gray-700 ring-1 ring-gray-200 align-top">
+                    <a href="${enrollmentShowBaseUrl.replace('__ENROLLMENT__', enrollment.id)}" class="hover:text-cyan-700">
+                        ${enrollment.student?.full_name || ''}<br>
+                        <span class="text-xs font-normal text-gray-500">${enrollment.student?.email || ''}</span>
+                    </a>
+                </th>
+            `).join('')}
+            <th class="bg-white p-3 text-left text-sm font-semibold text-gray-700 ring-1 ring-gray-200">{{ __('Resumo') }}</th>
+        </tr>
+    `;
+
+    if (!enrollments.length) {
+        attendanceReportBody.innerHTML = `
+            <tr>
+                <td colspan="${enrollments.length + 2}" class="p-8 text-center text-gray-500 ring-1 ring-gray-200">
+                    {{ __('Nenhum aluno está matriculado nesta turma.') }}
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    attendanceReportBody.innerHTML = attendances.map(attendance => {
+        const presentStudentIds = new Set((attendance.records || []).map(record => String(record.student_id)));
+        const attendanceShowUrl = attendanceShowBaseUrl.replace('__ATTENDANCE__', attendance.id);
+        return `
+            <tr>
+                <td class="sticky left-0 z-10 bg-white p-3 align-top ring-1 ring-gray-200">
+                    <a href="${attendanceShowUrl}" class="font-medium text-gray-900 hover:text-cyan-700">${attendance.name}</a>
+                    <div class="mt-1 text-xs text-gray-500">${formatDateInputValue(attendance.attendance_date)}</div>
+                    <div class="mt-1 text-xs text-gray-500">${formatHours(attendance.duration_hours)}</div>
+                </td>
+                ${enrollments.map(enrollment => {
+                    const present = presentStudentIds.has(String(enrollment.student_id));
+
+                    return `
+                        <td class="p-3 text-center ring-1 ring-gray-200">
+                            <span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold ${present ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}">
+                                ${present ? @json(__('Presente')) : @json(__('Ausente'))}
+                            </span>
+                        </td>
+                    `;
+                }).join('')}
+                <td class="p-3 align-top ring-1 ring-gray-200">
+                    <div class="text-sm font-medium text-gray-900">${attendance.records?.length || 0} {{ __('presentes') }}</div>
+                    <div class="mt-1 text-xs text-gray-500">${formatHours(attendance.duration_hours)}</div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+refreshButton.addEventListener('click', fetchReportData);
+printButton.addEventListener('click', () => window.print());
+
+fetchReportData();
+</script>
+@endsection

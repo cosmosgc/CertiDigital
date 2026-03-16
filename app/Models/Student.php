@@ -27,14 +27,14 @@ class Student extends Model
     public function courses()
     {
         return $this->belongsToMany(Course::class, 'course_enrollments')
-                    ->withPivot(['course_class_id', 'progress_percent', 'grade', 'completed'])
+                    ->withPivot(['course_class_id', 'progress_hours', 'grade', 'completed'])
                     ->withTimestamps();
     }
 
     public function classEnrollments()
     {
         return $this->belongsToMany(CourseClass::class, 'course_enrollments')
-            ->withPivot(['course_id', 'progress_percent', 'grade', 'completed'])
+            ->withPivot(['course_id', 'progress_hours', 'grade', 'completed'])
             ->withTimestamps();
     }
 

@@ -3,6 +3,8 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CertificateSettingController;
 use App\Models\CourseClass;
+use App\Models\CourseClassAttendance;
+use App\Models\CourseEnrollment;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -33,6 +35,19 @@ Route::middleware('auth')->group(function () {
         Route::get('/course-classes/{courseClass}/manage', function (CourseClass $courseClass) {
             return view('course-classes.manage', compact('courseClass'));
         })->name('course-classes.manage');
+        Route::get('/course-classes/{courseClass}/enrollments/{courseEnrollment}', function (CourseClass $courseClass, CourseEnrollment $courseEnrollment) {
+            abort_unless($courseEnrollment->course_class_id === $courseClass->id, 404);
+
+            return view('course-classes.enrollment', compact('courseClass', 'courseEnrollment'));
+        })->name('course-class-enrollments.show');
+        Route::get('/course-classes/{courseClass}/attendances/{courseClassAttendance}', function (CourseClass $courseClass, CourseClassAttendance $courseClassAttendance) {
+            abort_unless($courseClassAttendance->course_class_id === $courseClass->id, 404);
+
+            return view('course-classes.attendance', compact('courseClass', 'courseClassAttendance'));
+        })->name('course-class-attendances.show');
+        Route::get('/course-classes/{courseClass}/attendance-report', function (CourseClass $courseClass) {
+            return view('course-classes.attendance-report', compact('courseClass'));
+        })->name('course-classes.attendance-report');
         Route::view('/certificates', 'certificates.index')->name('certificates.index');
 
         // Certificate settings routes
