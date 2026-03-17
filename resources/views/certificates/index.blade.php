@@ -1,17 +1,20 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 ">
-    <div class="bg-white dark:bg-gray-800  overflow-hidden shadow-sm sm:rounded-lg p-6">
-        <div class="flex justify-between items-center">
-            <h2 class="text-xl font-semibold">{{ __('Certificados') }}</h2>
-            <a href="{{ route('certificates.emit') }}" class="px-4 py-2 bg-pink-600 text-white rounded">{{ __('Emitir certificado') }}</a>
+<div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <div class="overflow-hidden shadow-sm sm:rounded-2xl p-6">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h2 class="text-2xl font-semibold text-gray-900 dark:text-white">{{ __('Certificados') }}</h2>
+                <p class="mt-1 text-sm text-gray-500">{{ __('Acompanhe emissões, revise dados e abra detalhes em um espaço mais limpo.') }}</p>
+            </div>
+            <a href="{{ route('certificates.emit') }}" class="rounded-xl bg-pink-600 px-4 py-3 text-center text-white shadow-sm">{{ __('Emitir certificado') }}</a>
         </div>
 
-        <div class="mt-4">
+        <div class="bg-white mt-6 overflow-hidden rounded-2xl border border-gray-200">
             <table class="w-full table-auto" id="certificatesTable">
                 <thead>
-                    <tr class="text-left">
+                    <tr class="bg-gray-50 text-left text-sm text-gray-600">
                         <th class="p-2">{{ __('ID') }}</th>
                         <th class="p-2">{{ __('Código') }}</th>
                         <th class="p-2">{{ __('Aluno') }}</th>
@@ -26,59 +29,63 @@
         </div>
 
         <div id="formContainer" class="mt-4 hidden">
-            <h3 id="formTitle" class="font-semibold"></h3>
-            <form id="certificateForm" class="space-y-4">
+            <div class="rounded-2xl border border-dashed border-pink-300 bg-pink-50/40 p-5">
+            <h3 id="formTitle" class="text-lg font-semibold text-gray-900"></h3>
+            <form id="certificateForm" class="mt-4 space-y-4">
                 <input type="hidden" name="id" />
                 <div>
-                    <label class="block text-sm font-medium">{{ __('Código do certificado') }}</label>
-                    <input name="certificate_code" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" readonly />
+                    <label class="block text-sm font-medium text-gray-700">{{ __('Código do certificado') }}</label>
+                    <input name="certificate_code" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" readonly />
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium">{{ __('Aluno') }}</label>
-                    <select name="student_id" id="studentSelect" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"></select>
+                    <label class="block text-sm font-medium text-gray-700">{{ __('Aluno') }}</label>
+                    <select name="student_id" id="studentSelect" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm"></select>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium">{{ __('Curso') }}</label>
-                    <select name="course_id" id="courseSelect" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"></select>
+                    <label class="block text-sm font-medium text-gray-700">{{ __('Curso') }}</label>
+                    <select name="course_id" id="courseSelect" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm"></select>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium">{{ __('Instrutor') }}</label>
-                    <select name="instructor_id" id="instructorSelect" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"></select>
+                    <label class="block text-sm font-medium text-gray-700">{{ __('Instrutor') }}</label>
+                    <select name="instructor_id" id="instructorSelect" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm"></select>
                 </div>
 
                 <div class="grid grid-cols-3 gap-4">
                     <div>
-                        <label class="block text-sm font-medium">{{ __('Data de emissão') }}</label>
-                        <input type="date" name="issue_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                        <label class="block text-sm font-medium text-gray-700">{{ __('Data de emissão') }}</label>
+                        <input type="date" name="issue_date" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
                     </div>
                     <div>
-                        <label class="block text-sm font-medium">{{ __('Data de início') }}</label>
-                        <input type="date" name="start_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                        <label class="block text-sm font-medium text-gray-700">{{ __('Data de início') }}</label>
+                        <input type="date" name="start_date" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
                     </div>
                     <div>
-                        <label class="block text-sm font-medium">{{ __('Data de término') }}</label>
-                        <input type="date" name="end_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                        <label class="block text-sm font-medium text-gray-700">{{ __('Data de término') }}</label>
+                        <input type="date" name="end_date" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium">{{ __('Status') }}</label>
-                    <input name="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                    <label class="block text-sm font-medium text-gray-700">{{ __('Status') }}</label>
+                    <input name="status" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
                 </div>
 
                 <div class="flex gap-2">
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded">{{ __('Salvar') }}</button>
-                    <button type="button" id="cancelBtn" class="px-4 py-2 bg-gray-300 rounded">{{ __('Cancelar') }}</button>
+                    <button type="submit" class="rounded-xl bg-indigo-600 px-4 py-2 text-white">{{ __('Salvar') }}</button>
+                    <button type="button" id="cancelBtn" class="rounded-xl bg-white px-4 py-2 text-gray-700 ring-1 ring-gray-300">{{ __('Cancelar') }}</button>
                 </div>
             </form>
+            </div>
         </div>
 
         <div id="viewModal" class="mt-4 hidden">
-            <h3 class="font-semibold">{{ __('Detalhes do certificado') }}</h3>
-            <pre id="detailPre" class="bg-gray-100 p-4 mt-2 rounded"></pre>
+            <div class="rounded-2xl bg-white p-5 ring-1 ring-gray-200">
+                <h3 class="font-semibold text-gray-900">{{ __('Detalhes do certificado') }}</h3>
+                <pre id="detailPre" class="mt-3 rounded-2xl bg-gray-100 p-4"></pre>
+            </div>
         </div>
     </div>
 </div>

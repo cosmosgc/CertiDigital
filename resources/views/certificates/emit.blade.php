@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
-    <div class="bg-white dark:bg-gray-800  overflow-hidden shadow-sm  sm:rounded-lg p-6">
+    <div class="bg-white   overflow-hidden shadow-sm  sm:rounded-lg p-6">
         <h2 class="text-xl font-semibold">{{ __('Emitir certificado') }}</h2>
 
         <form id="emitForm" class="mt-4 space-y-4">
@@ -25,7 +25,7 @@
             <div class="grid grid-cols-3 gap-4">
                 <div>
                     <label class="block text-sm font-medium">{{ __('Data de emissão') }}</label>
-                    <input type="date" name="issue_date" id="issue_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm " />
+                    <input type="date" name="issue_date" id="issue_date" value="{{ request('issue_date', now()->toDateString()) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm " />
                 </div>
                 <div>
                     <label class="block text-sm font-medium">{{ __('Data de início') }}</label>
@@ -33,7 +33,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium">{{ __('Data de término') }}</label>
-                    <input type="date" name="end_date" id="end_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm " />
+                    <input type="date" name="end_date" id="end_date" value="{{ request('issue_date', now()->toDateString()) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm " />
                 </div>
             </div>
 
@@ -62,11 +62,54 @@
 
 <script>
 const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+const currentUserId = @json(auth()->id());
 const studentSelect = document.getElementById('studentSelect');
 const instructorSelect = document.querySelector('select[name="instructor_id"]');
 const courseSelect = document.getElementById('courseSelect');
 const emitForm = document.getElementById('emitForm');
 const result = document.getElementById('result');
+const issueDateInput = document.getElementById('issue_date');
+const startDateInput = document.getElementById('start_date');
+const endDateInput = document.getElementById('end_date');
+const statusSelect = document.getElementById('status');
+const presetStudentId = @json(request('student_id'));
+const presetCourseId = @json(request('course_id'));
+const todayDate = @json(now()->toDateString());
+const presetIssueDate = @json(request('issue_date')) || todayDate;
+const presetStartDate = @json(request('start_date'));
+const presetEndDate = @json(request('end_date'));
+const presetStatus = @json(request('status', 'valid'));
+const presetInstructorId = @json(request('instructor_id'));
+
+function applyPresets() {
+    if (presetStudentId) {
+        studentSelect.value = String(presetStudentId);
+    }
+
+    if (presetCourseId) {
+        courseSelect.value = String(presetCourseId);
+    }
+
+    if (presetInstructorId) {
+        instructorSelect.value = String(presetInstructorId);
+    }
+
+    if (presetIssueDate) {
+        issueDateInput.value = presetIssueDate;
+    }
+
+    if (presetStartDate) {
+        startDateInput.value = presetStartDate;
+    }
+
+    if (presetEndDate) {
+        endDateInput.value = presetEndDate;
+    }
+
+    if (presetStatus) {
+        statusSelect.value = presetStatus;
+    }
+}
 
 async function fetchChoices() {
     const [studentsRes, coursesRes, instructorsRes] = await Promise.all([fetch('{{ route("api.students.index") }}'), fetch('{{ route("api.courses.index") }}'), fetch('{{ route("api.instructors.index") }}')]);
@@ -77,6 +120,7 @@ async function fetchChoices() {
     studentSelect.innerHTML = '<option value="">' + @json(__('Escolha um aluno')) + '</option>' + (students || []).map(s => `<option value="${s.id}">${s.full_name}</option>`).join('');
     courseSelect.innerHTML = '<option value="">' + @json(__('Escolha um curso')) + '</option>' + (courses || []).map(c => `<option value="${c.id}">${c.title}</option>`).join('');
     instructorSelect.innerHTML = '<option value="">' + @json(__('Escolha um instrutor')) + '</option>' + (instructors || []).map(i => `<option value="${i.id}">${i.full_name}</option>`).join('');
+    applyPresets();
 }
 
 function generateCode() {
@@ -94,6 +138,7 @@ emitForm.addEventListener('submit', async (e) => {
         start_date: emitForm.start_date.value || null,
         end_date: emitForm.end_date.value || null,
         status: emitForm.status.value || null,
+        user_id: currentUserId,
     };
 
     const res = await fetch('{{ route("api.certificates.store") }}', {
@@ -101,6 +146,7 @@ emitForm.addEventListener('submit', async (e) => {
         headers: {
             'Content-Type': 'application/json',
             'X-CSRF-TOKEN': token,
+            'X-User-Id': currentUserId,
             'Accept': 'application/json'
         },
         credentials: 'same-origin',
@@ -117,6 +163,7 @@ emitForm.addEventListener('submit', async (e) => {
     }
 });
 
+applyPresets();
 fetchChoices();
 </script>
 @endsection

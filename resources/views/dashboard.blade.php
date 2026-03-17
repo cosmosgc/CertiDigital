@@ -10,31 +10,31 @@
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
+                <div class="overflow-hidden shadow-sm sm:rounded-lg p-6">
                     <div class="text-sm text-gray-500">{{ __('Usuários') }}</div>
                     <div class="mt-2 text-2xl font-semibold">{{ $userCount }}</div>
                 </div>
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
+                <div class="overflow-hidden shadow-sm sm:rounded-lg p-6">
                     <div class="text-sm text-gray-500">{{ __('Certificados') }}</div>
                     <div class="mt-2 text-2xl font-semibold">{{ $certificateCount }}</div>
                 </div>
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
+                <div class="overflow-hidden shadow-sm sm:rounded-lg p-6">
                     <div class="text-sm text-gray-500">{{ __('Cursos') }}</div>
                     <div class="mt-2 text-2xl font-semibold">{{ $courseCount }}</div>
                 </div>
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
+                <div class="overflow-hidden shadow-sm sm:rounded-lg p-6">
                     <div class="text-sm text-gray-500">{{ __('Alunos') }}</div>
                     <div class="mt-2 text-2xl font-semibold">{{ $studentCount }}</div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-2 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
+                <div class="lg:col-span-2 overflow-hidden shadow-sm sm:rounded-lg p-6">
                     <h3 class="text-lg font-semibold mb-4">{{ __('Certificados mensais') }}</h3>
                     <canvas id="certChart" height="120"></canvas>
                 </div>
 
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
+                <div class="overflow-hidden shadow-sm sm:rounded-lg p-6">
                     <h3 class="text-lg font-semibold mb-4">{{ __('Certificados recentes') }}</h3>
                     <table class="w-full text-left text-sm">
                         <thead>

@@ -1,17 +1,20 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 ">
-    <div class="bg-white dark:bg-gray-800  overflow-hidden shadow-sm sm:rounded-lg p-6">
-        <div class="flex justify-between items-center">
-            <h2 class="text-xl font-semibold">{{ __('Cursos') }}</h2>
-            <button id="showCreate" class="px-4 py-2 bg-yellow-500 text-white rounded">{{ __('Novo curso') }}</button>
+<div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <div class="overflow-hidden shadow-sm sm:rounded-2xl p-6">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h2 class="text-2xl font-semibold text-gray-900 dark:text-white">{{ __('Cursos') }}</h2>
+                <p class="mt-1 text-sm text-gray-500">{{ __('Centralize os cursos e mantenha carga horária, modalidade e descrição fáceis de revisar.') }}</p>
+            </div>
+            <button id="showCreate" class="rounded-xl bg-yellow-500 px-4 py-3 text-white shadow-sm">{{ __('Novo curso') }}</button>
         </div>
 
-        <div class="mt-4">
+        <div class="bg-white mt-6 overflow-hidden rounded-2xl border border-gray-200">
             <table class="w-full table-auto" id="coursesTable">
                 <thead>
-                    <tr class="text-left">
+                    <tr class="bg-gray-50 text-left text-sm text-gray-600">
                         <th class="p-2">{{ __('ID') }}</th>
                         <th class="p-2">{{ __('Título') }}</th>
                         <th class="p-2">{{ __('Carga horária') }}</th>
@@ -24,25 +27,26 @@
         </div>
 
         <div id="formContainer" class="mt-4 hidden">
-            <h3 id="formTitle" class="font-semibold"></h3>
-            <form id="courseForm" class="space-y-4">
+            <div class="rounded-2xl border border-dashed border-amber-300 bg-amber-50/60 p-5">
+            <h3 id="formTitle" class="text-lg font-semibold text-gray-900"></h3>
+            <form id="courseForm" class="mt-4 space-y-4">
                 <input type="hidden" name="id" />
                 <div>
-                    <label class="block text-sm font-medium">{{ __('Título') }}</label>
-                    <input name="title" placeholder="Nome do curso" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                    <label class="block text-sm font-medium text-gray-700">{{ __('Título') }}</label>
+                    <input name="title" placeholder="Nome do curso" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
                 </div>
                 <div>
-                    <label class="block text-sm font-medium">{{ __('Descrição') }}</label>
-                    <textarea name="description" placeholder="Descrição do curso" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"></textarea>
+                    <label class="block text-sm font-medium text-gray-700">{{ __('Descrição') }}</label>
+                    <textarea name="description" placeholder="Descrição do curso" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm"></textarea>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium">{{ __('Carga horária (horas)') }}</label>
-                        <input name="workload_hours" type="number" placeholder="20" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                        <label class="block text-sm font-medium text-gray-700">{{ __('Carga horária (horas)') }}</label>
+                        <input name="workload_hours" type="number" placeholder="20" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
                     </div>
                     <div>
-                        <label class="block text-sm font-medium">{{ __('Modalidade') }}</label>
-                        <select name="modality" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        <label class="block text-sm font-medium text-gray-700">{{ __('Modalidade') }}</label>
+                        <select name="modality" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm">
                             <option value="online">{{ __('Online') }}</option>
                             <option value="in_person">{{ __('Presencial') }}</option>
                             <option value="hybrid">{{ __('Híbrido') }}</option>
@@ -50,10 +54,11 @@
                     </div>
                 </div>
                 <div class="flex gap-2">
-                    <button type="submit" class="px-4 py-2 bg-yellow-500 text-white rounded">{{ __('Salvar') }}</button>
-                    <button type="button" id="cancelBtn" class="px-4 py-2 bg-gray-300 rounded">{{ __('Cancelar') }}</button>
+                    <button type="submit" class="rounded-xl bg-yellow-500 px-4 py-2 text-white">{{ __('Salvar') }}</button>
+                    <button type="button" id="cancelBtn" class="rounded-xl bg-white px-4 py-2 text-gray-700 ring-1 ring-gray-300">{{ __('Cancelar') }}</button>
                 </div>
             </form>
+            </div>
         </div>
     </div>
 </div>

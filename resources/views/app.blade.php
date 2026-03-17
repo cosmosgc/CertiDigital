@@ -2,11 +2,11 @@
 
 @section('content')
 <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-    <div class="bg-white dark:bg-gray-800  overflow-hidden shadow-sm sm:rounded-lg p-6">
+    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
         <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ __('Administrador CertiDigital') }}</h1>
 
         @auth
-            <div class="mt-6 bg-white dark:bg-gray-800  p-4 rounded shadow-sm">
+            <div class="mt-6 bg-white p-4 rounded shadow-sm">
                 <div class="flex gap-2 items-center">
                     <input id="certSearch" type="search" placeholder="{{ __('Pesquisar certificados por código, aluno ou curso') }}" class="flex-1 rounded border-gray-300 shadow-sm p-2" />
                     <button id="searchBtn" class="px-4 py-2 bg-indigo-600 text-white rounded">{{ __('Pesquisar') }}</button>
@@ -39,7 +39,7 @@
             </div>
 
             <p class="mt-6 text-sm text-gray-600">{{ __('Use os links acima para gerenciar Alunos, Instrutores, Cursos ou emitir certificados.') }}</p>
-            <div class="mt-6 bg-white dark:bg-gray-800  p-4 rounded shadow-sm">
+            <div class="mt-6 bg-white  p-4 rounded shadow-sm">
                 <div class="flex gap-2 items-center">
                     <input id="certSearch" type="search" placeholder="{{ __('Pesquisar certificados por código, aluno ou curso') }}" class="flex-1 rounded border-gray-300 shadow-sm p-2" />
                     <button id="searchBtn" class="px-4 py-2 bg-indigo-600 text-white rounded">{{ __('Pesquisar') }}</button>

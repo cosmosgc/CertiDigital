@@ -12,12 +12,14 @@ class CourseEnrollment extends Model
     protected $fillable = [
         'student_id',
         'course_id',
-        'progress_percent',
+        'course_class_id',
+        'progress_hours',
         'grade',
         'completed',
     ];
 
     protected $casts = [
+        'progress_hours' => 'decimal:2',
         'completed' => 'boolean',
         'grade' => 'decimal:2',
     ];
@@ -34,5 +36,10 @@ class CourseEnrollment extends Model
     public function course()
     {
         return $this->belongsTo(Course::class);
+    }
+
+    public function courseClass()
+    {
+        return $this->belongsTo(CourseClass::class);
     }
 }
