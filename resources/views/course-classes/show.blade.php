@@ -138,13 +138,22 @@ function getProgressPercent(hours, workload) {
 }
 
 async function fetchClassData() {
-    const res = await fetch(`{{ route("api.course-classes.show", ["course_class" => "__ID__"]) }}`.replace('__ID__', classId), {
-        credentials: 'same-origin',
-        headers: { 'Accept': 'application/json' }
-    });
+    try {
+        const res = await fetch(`{{ route("api.course-classes.show", ["course_class" => "__ID__"]) }}`.replace('__ID__', classId), {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json' }
+        });
 
-    const data = await res.json();
-    renderClass(data);
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        renderClass(data);
+    } catch (error) {
+        console.error('Failed to fetch class data:', error);
+        alert(`@json`(__('Erro ao carregar dados da turma')));
+    }
 }
 
 function progressTone(progress) {
