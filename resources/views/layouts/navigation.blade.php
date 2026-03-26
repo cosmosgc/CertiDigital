@@ -47,7 +47,7 @@
                                     <a href="{{ route('certificates.emit') }}" class="rounded-xl px-3 py-3 text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700">
                                         {{ __('Emitir certificado') }}
                                     </a>
-                                    `@role`('admin')
+                                    @role('admin')
                                         <a href="{{ route('courses.index') }}" class="rounded-xl px-3 py-3 text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700">
                                             {{ __('Cursos') }}
                                         </a>
