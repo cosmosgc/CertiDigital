@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\InstructorController;
 use App\Http\Controllers\Api\CertificateController;
 use App\Http\Controllers\Api\CourseEnrollmentController;
 use App\Http\Controllers\Api\VerificationLogController;
+use App\Http\Controllers\Api\ScheduleEventController;
 
 Route::name('api.')->group(function () {
     Route::get('/user', function (Request $request) {
@@ -23,6 +24,7 @@ Route::name('api.')->group(function () {
     Route::apiResource('certificates', CertificateController::class)->only(['index', 'show']);
     Route::apiResource('students', StudentController::class)->only(['index', 'show']);
     Route::apiResource('instructors', InstructorController::class)->only(['index', 'show']);
+    Route::apiResource('schedule-events', ScheduleEventController::class)->only(['index', 'show']);
     Route::get('certificates/code/{code}', [CertificateController::class, 'getByCode'])->name('certificates.code.show');
     Route::post('certificates/{code}/verify', [CertificateController::class, 'verify']);
 
@@ -49,6 +51,7 @@ Route::name('api.')->group(function () {
         Route::delete('course-class-attendance-records/{course_class_attendance_record}', [CourseClassAttendanceRecordController::class, 'destroy'])->name('course-class-attendance-records.destroy');
         Route::apiResource('students', StudentController::class)->only(['store', 'update', 'destroy']);
         Route::apiResource('instructors', InstructorController::class)->only(['store', 'update', 'destroy']);
+        Route::apiResource('schedule-events', ScheduleEventController::class)->only(['store', 'update', 'destroy']);
         Route::apiResource('certificates', CertificateController::class)->only(['store', 'update', 'destroy']);
         Route::apiResource('course-enrollments', CourseEnrollmentController::class);
         Route::apiResource('verification-logs', VerificationLogController::class)->only(['index', 'store', 'show', 'destroy']);

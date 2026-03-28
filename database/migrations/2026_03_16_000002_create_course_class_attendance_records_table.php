@@ -9,9 +9,19 @@ return new class extends Migration {
     {
         Schema::create('course_class_attendance_records', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('course_class_attendance_id')->constrained('course_class_attendances')->cascadeOnDelete();
-            $table->foreignId('student_id')->constrained('students')->cascadeOnDelete();
+            $table->unsignedBigInteger('course_class_attendance_id');
+            $table->unsignedBigInteger('student_id');
             $table->timestamps();
+
+            $table->foreign('course_class_attendance_id', 'ccar_attendance_fk')
+                ->references('id')
+                ->on('course_class_attendances')
+                ->cascadeOnDelete();
+
+            $table->foreign('student_id', 'ccar_student_fk')
+                ->references('id')
+                ->on('students')
+                ->cascadeOnDelete();
 
             $table->unique(['course_class_attendance_id', 'student_id'], 'attendance_student_unique');
         });

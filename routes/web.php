@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CertificateSettingController;
+use App\Http\Controllers\ScheduleEventController;
 use App\Models\CourseClass;
 use App\Models\CourseClassAttendance;
 use App\Models\CourseEnrollment;
@@ -29,6 +30,7 @@ Route::middleware('auth')->group(function () {
         Route::view('/instructors', 'instructors.index')->name('instructors.index');
         Route::view('/courses', 'courses.index')->name('courses.index');
         Route::view('/course-classes', 'course-classes.index')->name('course-classes.index');
+        Route::get('/schedule-events', [ScheduleEventController::class, 'index'])->name('schedule-events.index');
         Route::get('/course-classes/{courseClass}', function (CourseClass $courseClass) {
             return view('course-classes.show', compact('courseClass'));
         })->name('course-classes.show');

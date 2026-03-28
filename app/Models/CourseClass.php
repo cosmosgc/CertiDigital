@@ -42,4 +42,9 @@ class CourseClass extends Model
     {
         return $this->hasMany(CourseClassAttendance::class)->orderBy('attendance_date')->orderBy('id');
     }
+
+    public function scheduleEvents()
+    {
+        return $this->hasMany(ScheduleEvent::class)->orderBy('start_date')->orderBy('start_time');
+    }
 }

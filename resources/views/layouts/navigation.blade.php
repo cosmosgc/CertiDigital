@@ -54,10 +54,13 @@
                                         <a href="{{ route('course-classes.index') }}" class="rounded-xl px-3 py-3 text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700">
                                             {{ __('Turmas') }}
                                         </a>
+                                        <a href="{{ route('schedule-events.index') }}" class="rounded-xl px-3 py-3 text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700">
+                                            {{ __('Agenda') }}
+                                        </a>
                                         <a href="{{ route('certificates.index') }}" class="rounded-xl px-3 py-3 text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700">
                                             {{ __('Certificados') }}
                                         </a>
-                                    `@endrole`
+                                    @endrole
                                 </div>
                             </div>
                         </div>
@@ -212,6 +215,9 @@
                         </x-responsive-nav-link>
                         <x-responsive-nav-link :href="route('course-classes.index')" :active="request()->routeIs('course-classes.*')">
                             {{ __('Turmas') }}
+                        </x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('schedule-events.index')" :active="request()->routeIs('schedule-events.*')">
+                            {{ __('Agenda') }}
                         </x-responsive-nav-link>
                         <x-responsive-nav-link :href="route('certificates.index')" :active="request()->routeIs('certificates.*')">
                             {{ __('Certificados') }}
