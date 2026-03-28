@@ -15,6 +15,8 @@ Route::get('/', function () {
 Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
+    
+Route::get('/schedule-events', [ScheduleEventController::class, 'index'])->name('schedule-events.index');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -30,7 +32,6 @@ Route::middleware('auth')->group(function () {
         Route::view('/instructors', 'instructors.index')->name('instructors.index');
         Route::view('/courses', 'courses.index')->name('courses.index');
         Route::view('/course-classes', 'course-classes.index')->name('course-classes.index');
-        Route::get('/schedule-events', [ScheduleEventController::class, 'index'])->name('schedule-events.index');
         Route::get('/course-classes/{courseClass}', function (CourseClass $courseClass) {
             return view('course-classes.show', compact('courseClass'));
         })->name('course-classes.show');

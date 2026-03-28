@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
+@php($canManageScheduleEvents = auth()->user()?->hasRole('admin'))
 <style>
 @page {
     size: A4 landscape;
@@ -104,7 +105,9 @@
                 <h2 class="mt-3 text-2xl font-semibold text-gray-900 dark:text-white">{{ __('Agenda e datas especiais') }}</h2>
                 <p class="mt-1 text-sm text-gray-500">{{ __('Cadastre aulas semanais, provas, reuniões, feriados e outros compromissos importantes em um só lugar.') }}</p>
             </div>
-            <button id="showCreate" class="inline-flex items-center justify-center rounded-xl bg-sky-600 px-4 py-3 font-medium text-white shadow-sm transition hover:bg-sky-700">{{ __('Novo evento') }}</button>
+            @if($canManageScheduleEvents)
+                <button id="showCreate" class="inline-flex items-center justify-center rounded-xl bg-sky-600 px-4 py-3 font-medium text-white shadow-sm transition hover:bg-sky-700">{{ __('Novo evento') }}</button>
+            @endif
         </div>
 
         <div class="print-hide mt-6 rounded-2xl border border-gray-200 bg-white p-4 sm:p-5">
@@ -208,112 +211,117 @@
                         <th class="p-2">{{ __('Turma') }}</th>
                         <th class="p-2">{{ __('Data / horário') }}</th>
                         <th class="p-2">{{ __('Recorrência') }}</th>
-                        <th class="p-2">{{ __('Ações') }}</th>
+                        @if($canManageScheduleEvents)
+                            <th class="p-2">{{ __('Ações') }}</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody></tbody>
             </table>
         </div>
 
-        <div id="formContainer" class="mt-4 hidden">
-            <div class="rounded-2xl border border-dashed border-sky-300 bg-sky-50/70 p-5">
-                <h3 id="formTitle" class="text-lg font-semibold text-gray-900"></h3>
-                <form id="scheduleEventForm" class="mt-4 space-y-4">
-                    <input type="hidden" name="id" />
+        @if($canManageScheduleEvents)
+            <div id="formContainer" class="mt-4 hidden">
+                <div class="rounded-2xl border border-dashed border-sky-300 bg-sky-50/70 p-5">
+                    <h3 id="formTitle" class="text-lg font-semibold text-gray-900"></h3>
+                    <form id="scheduleEventForm" class="mt-4 space-y-4">
+                        <input type="hidden" name="id" />
 
-                    <div class="grid gap-4 lg:grid-cols-2">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">{{ __('Título') }}</label>
-                            <input name="title" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" placeholder="{{ __('Ex.: Prova final de inglês') }}" />
+                        <div class="grid gap-4 lg:grid-cols-2">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">{{ __('Título') }}</label>
+                                <input name="title" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" placeholder="{{ __('Ex.: Prova final de inglês') }}" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">{{ __('Tipo de evento') }}</label>
+                                <select name="event_type" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm">
+                                    <option value="weekly_class">{{ __('Aula semanal') }}</option>
+                                    <option value="exam">{{ __('Prova') }}</option>
+                                    <option value="holiday">{{ __('Feriado') }}</option>
+                                    <option value="meeting">{{ __('Reunião') }}</option>
+                                    <option value="deadline">{{ __('Prazo') }}</option>
+                                    <option value="other">{{ __('Outro') }}</option>
+                                </select>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">{{ __('Tipo de evento') }}</label>
-                            <select name="event_type" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm">
-                                <option value="weekly_class">{{ __('Aula semanal') }}</option>
-                                <option value="exam">{{ __('Prova') }}</option>
-                                <option value="holiday">{{ __('Feriado') }}</option>
-                                <option value="meeting">{{ __('Reunião') }}</option>
-                                <option value="deadline">{{ __('Prazo') }}</option>
-                                <option value="other">{{ __('Outro') }}</option>
-                            </select>
-                        </div>
-                    </div>
 
-                    <div class="grid gap-4 lg:grid-cols-2">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">{{ __('Turma vinculada') }}</label>
-                            <select name="course_class_id" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm"></select>
+                        <div class="grid gap-4 lg:grid-cols-2">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">{{ __('Turma vinculada') }}</label>
+                                <select name="course_class_id" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">{{ __('Local') }}</label>
+                                <input name="location" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" placeholder="{{ __('Sala 2 ou link da aula') }}" />
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">{{ __('Local') }}</label>
-                            <input name="location" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" placeholder="{{ __('Sala 2 ou link da aula') }}" />
-                        </div>
-                    </div>
 
-                    <div class="grid gap-4 lg:grid-cols-2">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">{{ __('Data inicial') }}</label>
-                            <input name="start_date" type="date" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
+                        <div class="grid gap-4 lg:grid-cols-2">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">{{ __('Data inicial') }}</label>
+                                <input name="start_date" type="date" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">{{ __('Data final') }}</label>
+                                <input name="end_date" type="date" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">{{ __('Data final') }}</label>
-                            <input name="end_date" type="date" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
-                        </div>
-                    </div>
 
-                    <div class="grid gap-4 lg:grid-cols-3">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">{{ __('Hora inicial') }}</label>
-                            <input name="start_time" type="time" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
+                        <div class="grid gap-4 lg:grid-cols-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">{{ __('Hora inicial') }}</label>
+                                <input name="start_time" type="time" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">{{ __('Hora final') }}</label>
+                                <input name="end_time" type="time" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">{{ __('Dia da semana') }}</label>
+                                <select name="weekday" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm">
+                                    <option value="">{{ __('Sem recorrência') }}</option>
+                                    <option value="0">{{ __('Domingo') }}</option>
+                                    <option value="1">{{ __('Segunda-feira') }}</option>
+                                    <option value="2">{{ __('Terça-feira') }}</option>
+                                    <option value="3">{{ __('Quarta-feira') }}</option>
+                                    <option value="4">{{ __('Quinta-feira') }}</option>
+                                    <option value="5">{{ __('Sexta-feira') }}</option>
+                                    <option value="6">{{ __('Sábado') }}</option>
+                                </select>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">{{ __('Hora final') }}</label>
-                            <input name="end_time" type="time" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
+
+                        <div class="grid gap-4 lg:grid-cols-2">
+                            <label class="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
+                                <input name="is_recurring_weekly" type="checkbox" class="rounded border-gray-300 text-sky-600 shadow-sm focus:ring-sky-500" />
+                                <span>{{ __('Repetir toda semana') }}</span>
+                            </label>
+                            <label class="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
+                                <input name="is_all_day" type="checkbox" class="rounded border-gray-300 text-sky-600 shadow-sm focus:ring-sky-500" />
+                                <span>{{ __('Evento de dia inteiro') }}</span>
+                            </label>
                         </div>
+
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">{{ __('Dia da semana') }}</label>
-                            <select name="weekday" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm">
-                                <option value="">{{ __('Sem recorrência') }}</option>
-                                <option value="0">{{ __('Domingo') }}</option>
-                                <option value="1">{{ __('Segunda-feira') }}</option>
-                                <option value="2">{{ __('Terça-feira') }}</option>
-                                <option value="3">{{ __('Quarta-feira') }}</option>
-                                <option value="4">{{ __('Quinta-feira') }}</option>
-                                <option value="5">{{ __('Sexta-feira') }}</option>
-                                <option value="6">{{ __('Sábado') }}</option>
-                            </select>
+                            <label class="block text-sm font-medium text-gray-700">{{ __('Descrição') }}</label>
+                            <textarea name="description" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" placeholder="{{ __('Observações, conteúdo da aula, instruções da prova, etc.') }}"></textarea>
                         </div>
-                    </div>
 
-                    <div class="grid gap-4 lg:grid-cols-2">
-                        <label class="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
-                            <input name="is_recurring_weekly" type="checkbox" class="rounded border-gray-300 text-sky-600 shadow-sm focus:ring-sky-500" />
-                            <span>{{ __('Repetir toda semana') }}</span>
-                        </label>
-                        <label class="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
-                            <input name="is_all_day" type="checkbox" class="rounded border-gray-300 text-sky-600 shadow-sm focus:ring-sky-500" />
-                            <span>{{ __('Evento de dia inteiro') }}</span>
-                        </label>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">{{ __('Descrição') }}</label>
-                        <textarea name="description" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" placeholder="{{ __('Observações, conteúdo da aula, instruções da prova, etc.') }}"></textarea>
-                    </div>
-
-                    <div class="flex gap-2">
-                        <button type="submit" class="rounded-xl bg-sky-600 px-4 py-2 text-white">{{ __('Salvar') }}</button>
-                        <button type="button" id="cancelBtn" class="rounded-xl bg-white px-4 py-2 text-gray-700 ring-1 ring-gray-300">{{ __('Cancelar') }}</button>
-                    </div>
-                </form>
+                        <div class="flex gap-2">
+                            <button type="submit" class="rounded-xl bg-sky-600 px-4 py-2 text-white">{{ __('Salvar') }}</button>
+                            <button type="button" id="cancelBtn" class="rounded-xl bg-white px-4 py-2 text-gray-700 ring-1 ring-gray-300">{{ __('Cancelar') }}</button>
+                        </div>
+                    </form>
+                </div>
             </div>
-        </div>
+        @endif
     </div>
 </div>
 
 <script>
 const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 const currentUserId = @json(auth()->id());
+const canManageScheduleEvents = @json($canManageScheduleEvents);
 const tableBody = document.querySelector('#scheduleEventsTable tbody');
 const formContainer = document.getElementById('formContainer');
 const scheduleEventForm = document.getElementById('scheduleEventForm');
@@ -385,6 +393,10 @@ async function fetchAllPages(url) {
 }
 
 function populateCourseClassOptions(selectedId = '') {
+    if (!scheduleEventForm) {
+        return;
+    }
+
     scheduleEventForm.course_class_id.innerHTML = `
         <option value="">{{ __('Sem turma vinculada') }}</option>
         ${courseClasses.map(courseClass => `
@@ -659,12 +671,14 @@ function renderScheduleEvents(list) {
             <td class="p-2">${item.course_class?.name || ''}</td>
             <td class="p-2">${formatDateRange(item)}</td>
             <td class="p-2">${formatRecurrence(item)}</td>
-            <td class="p-2">
-                <div class="flex flex-wrap gap-2">
-                    <button class="editBtn rounded-lg bg-amber-300 px-3 py-2 text-sm font-medium text-amber-950" data-id="${item.id}">{{ __('Editar') }}</button>
-                    <button class="deleteBtn rounded-lg bg-rose-600 px-3 py-2 text-sm font-medium text-white" data-id="${item.id}">{{ __('Excluir') }}</button>
-                </div>
-            </td>
+            ${canManageScheduleEvents ? `
+                <td class="p-2">
+                    <div class="flex flex-wrap gap-2">
+                        <button class="editBtn rounded-lg bg-amber-300 px-3 py-2 text-sm font-medium text-amber-950" data-id="${item.id}">{{ __('Editar') }}</button>
+                        <button class="deleteBtn rounded-lg bg-rose-600 px-3 py-2 text-sm font-medium text-white" data-id="${item.id}">{{ __('Excluir') }}</button>
+                    </div>
+                </td>
+            ` : ''}
         `;
         tableBody.appendChild(tr);
     });
@@ -731,6 +745,10 @@ function runPrint(mode) {
 }
 
 function resetForm() {
+    if (!scheduleEventForm) {
+        return;
+    }
+
     scheduleEventForm.reset();
     scheduleEventForm.id.value = '';
     populateCourseClassOptions();
@@ -738,6 +756,10 @@ function resetForm() {
 }
 
 function toggleTimeFields() {
+    if (!scheduleEventForm) {
+        return;
+    }
+
     const allDay = scheduleEventForm.is_all_day.checked;
     scheduleEventForm.start_time.disabled = allDay;
     scheduleEventForm.end_time.disabled = allDay;
@@ -749,6 +771,10 @@ function toggleTimeFields() {
 }
 
 function buildPayload() {
+    if (!scheduleEventForm) {
+        return {};
+    }
+
     return {
         title: scheduleEventForm.title.value,
         event_type: scheduleEventForm.event_type.value,
@@ -768,7 +794,9 @@ function buildPayload() {
 
 async function loadDependencies() {
     courseClasses = await fetchAllPages('{{ route("api.course-classes.index") }}');
-    populateCourseClassOptions();
+    if (canManageScheduleEvents) {
+        populateCourseClassOptions();
+    }
     populateCourseClassFilterOptions(initialFilters.course_class_id);
     eventTypeFilter.value = initialFilters.event_type;
 }
@@ -825,95 +853,97 @@ document.getElementById('printCalendarBtn').addEventListener('click', () => {
     runPrint('print-calendar');
 });
 
-document.getElementById('showCreate').addEventListener('click', () => {
-    resetForm();
-    formTitle.textContent = @json(__('Criar evento'));
-    formContainer.classList.remove('hidden');
-});
-
-document.getElementById('cancelBtn').addEventListener('click', () => {
-    formContainer.classList.add('hidden');
-});
-
-scheduleEventForm.is_all_day.addEventListener('change', toggleTimeFields);
-
-tableBody.addEventListener('click', async (e) => {
-    if (e.target.classList.contains('editBtn')) {
-        const id = e.target.dataset.id;
-        const res = await fetch(`{{ route("api.schedule-events.show", ["schedule_event" => "__ID__"]) }}`.replace('__ID__', id), {
-            credentials: 'same-origin',
-            headers: { 'Accept': 'application/json' }
-        });
-        const item = await res.json();
-
-        scheduleEventForm.id.value = item.id;
-        scheduleEventForm.title.value = item.title;
-        scheduleEventForm.event_type.value = item.event_type;
-        scheduleEventForm.location.value = item.location || '';
-        scheduleEventForm.start_date.value = item.start_date ? item.start_date.slice(0, 10) : '';
-        scheduleEventForm.end_date.value = item.end_date ? item.end_date.slice(0, 10) : '';
-        scheduleEventForm.start_time.value = formatTime(item.start_time);
-        scheduleEventForm.end_time.value = formatTime(item.end_time);
-        scheduleEventForm.weekday.value = item.weekday ?? '';
-        scheduleEventForm.is_recurring_weekly.checked = Boolean(item.is_recurring_weekly);
-        scheduleEventForm.is_all_day.checked = Boolean(item.is_all_day);
-        scheduleEventForm.description.value = item.description || '';
-        populateCourseClassOptions(item.course_class_id);
-        toggleTimeFields();
-
-        formTitle.textContent = @json(__('Editar evento'));
+if (canManageScheduleEvents) {
+    document.getElementById('showCreate').addEventListener('click', () => {
+        resetForm();
+        formTitle.textContent = @json(__('Criar evento'));
         formContainer.classList.remove('hidden');
-    }
+    });
 
-    if (e.target.classList.contains('deleteBtn')) {
-        if (!confirm(@json(__('Excluir evento?')))) return;
+    document.getElementById('cancelBtn').addEventListener('click', () => {
+        formContainer.classList.add('hidden');
+    });
 
-        const id = e.target.dataset.id;
-        const res = await fetch(`{{ route("api.schedule-events.destroy", ["schedule_event" => "__ID__"]) }}`.replace('__ID__', id), {
-            method: 'DELETE',
+    scheduleEventForm.is_all_day.addEventListener('change', toggleTimeFields);
+
+    tableBody.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('editBtn')) {
+            const id = e.target.dataset.id;
+            const res = await fetch(`{{ route("api.schedule-events.show", ["schedule_event" => "__ID__"]) }}`.replace('__ID__', id), {
+                credentials: 'same-origin',
+                headers: { 'Accept': 'application/json' }
+            });
+            const item = await res.json();
+
+            scheduleEventForm.id.value = item.id;
+            scheduleEventForm.title.value = item.title;
+            scheduleEventForm.event_type.value = item.event_type;
+            scheduleEventForm.location.value = item.location || '';
+            scheduleEventForm.start_date.value = item.start_date ? item.start_date.slice(0, 10) : '';
+            scheduleEventForm.end_date.value = item.end_date ? item.end_date.slice(0, 10) : '';
+            scheduleEventForm.start_time.value = formatTime(item.start_time);
+            scheduleEventForm.end_time.value = formatTime(item.end_time);
+            scheduleEventForm.weekday.value = item.weekday ?? '';
+            scheduleEventForm.is_recurring_weekly.checked = Boolean(item.is_recurring_weekly);
+            scheduleEventForm.is_all_day.checked = Boolean(item.is_all_day);
+            scheduleEventForm.description.value = item.description || '';
+            populateCourseClassOptions(item.course_class_id);
+            toggleTimeFields();
+
+            formTitle.textContent = @json(__('Editar evento'));
+            formContainer.classList.remove('hidden');
+        }
+
+        if (e.target.classList.contains('deleteBtn')) {
+            if (!confirm(@json(__('Excluir evento?')))) return;
+
+            const id = e.target.dataset.id;
+            const res = await fetch(`{{ route("api.schedule-events.destroy", ["schedule_event" => "__ID__"]) }}`.replace('__ID__', id), {
+                method: 'DELETE',
+                credentials: 'same-origin',
+                headers: {
+                    'X-CSRF-TOKEN': token,
+                    'X-User-Id': currentUserId,
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (res.ok) {
+                fetchScheduleEvents();
+            } else {
+                alert(@json(__('Erro ao excluir evento')));
+            }
+        }
+    });
+
+    scheduleEventForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const id = scheduleEventForm.id.value;
+        const url = id
+            ? `{{ route("api.schedule-events.update", ["schedule_event" => "__ID__"]) }}`.replace('__ID__', id)
+            : '{{ route("api.schedule-events.store") }}';
+
+        const res = await fetch(url, {
+            method: id ? 'PUT' : 'POST',
             credentials: 'same-origin',
             headers: {
+                'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': token,
-                'X-User-Id': currentUserId,
                 'Accept': 'application/json'
-            }
+            },
+            body: JSON.stringify(buildPayload())
         });
 
         if (res.ok) {
+            formContainer.classList.add('hidden');
             fetchScheduleEvents();
         } else {
-            alert(@json(__('Erro ao excluir evento')));
+            const error = await res.json().catch(() => null);
+            alert(error?.message || @json(__('Erro ao salvar evento')));
         }
-    }
-});
-
-scheduleEventForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const id = scheduleEventForm.id.value;
-    const url = id
-        ? `{{ route("api.schedule-events.update", ["schedule_event" => "__ID__"]) }}`.replace('__ID__', id)
-        : '{{ route("api.schedule-events.store") }}';
-
-    const res = await fetch(url, {
-        method: id ? 'PUT' : 'POST',
-        credentials: 'same-origin',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': token,
-            'Accept': 'application/json'
-        },
-        body: JSON.stringify(buildPayload())
     });
-
-    if (res.ok) {
-        formContainer.classList.add('hidden');
-        fetchScheduleEvents();
-    } else {
-        const error = await res.json().catch(() => null);
-        alert(error?.message || @json(__('Erro ao salvar evento')));
-    }
-});
+}
 
 async function init() {
     await loadDependencies();

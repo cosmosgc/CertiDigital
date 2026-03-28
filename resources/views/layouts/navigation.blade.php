@@ -47,15 +47,15 @@
                                     <a href="{{ route('certificates.emit') }}" class="rounded-xl px-3 py-3 text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700">
                                         {{ __('Emitir certificado') }}
                                     </a>
+                                    <a href="{{ route('schedule-events.index') }}" class="rounded-xl px-3 py-3 text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700">
+                                        {{ __('Agenda') }}
+                                    </a>
                                     @role('admin')
                                         <a href="{{ route('courses.index') }}" class="rounded-xl px-3 py-3 text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700">
                                             {{ __('Cursos') }}
                                         </a>
                                         <a href="{{ route('course-classes.index') }}" class="rounded-xl px-3 py-3 text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700">
                                             {{ __('Turmas') }}
-                                        </a>
-                                        <a href="{{ route('schedule-events.index') }}" class="rounded-xl px-3 py-3 text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700">
-                                            {{ __('Agenda') }}
                                         </a>
                                         <a href="{{ route('certificates.index') }}" class="rounded-xl px-3 py-3 text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700">
                                             {{ __('Certificados') }}
@@ -147,8 +147,18 @@
 
 
 
-    @guest
+@guest
     <div class="flex items-center gap-3">
+        <a href="{{ route('schedule-events.index') }}"
+           class="inline-flex items-center justify-center px-4 py-2 rounded-md
+                  text-sm font-semibold
+                  text-gray-700 dark:text-gray-200
+                  border border-gray-300 dark:border-gray-600
+                  hover:bg-gray-100 dark:hover:bg-gray-700
+                  transition-all duration-200
+                  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            {{ __('Agenda') }}
+        </a>
 
         {{-- Login --}}
         <a href="{{ route('login') }}"
@@ -200,6 +210,11 @@
                 <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                     {{ __('Painel') }}
                 </x-responsive-nav-link>
+                @guest
+                    <x-responsive-nav-link :href="route('schedule-events.index')" :active="request()->routeIs('schedule-events.*')">
+                        {{ __('Agenda') }}
+                    </x-responsive-nav-link>
+                @endguest
             </div>
 
             @auth
@@ -208,6 +223,9 @@
                     <x-responsive-nav-link :href="route('certificates.emit')" :active="request()->routeIs('certificates.emit')">
                         {{ __('Emitir certificado') }}
                     </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('schedule-events.index')" :active="request()->routeIs('schedule-events.*')">
+                        {{ __('Agenda') }}
+                    </x-responsive-nav-link>
 
                     @role('admin')
                         <x-responsive-nav-link :href="route('courses.index')" :active="request()->routeIs('courses.*')">
@@ -215,9 +233,6 @@
                         </x-responsive-nav-link>
                         <x-responsive-nav-link :href="route('course-classes.index')" :active="request()->routeIs('course-classes.*')">
                             {{ __('Turmas') }}
-                        </x-responsive-nav-link>
-                        <x-responsive-nav-link :href="route('schedule-events.index')" :active="request()->routeIs('schedule-events.*')">
-                            {{ __('Agenda') }}
                         </x-responsive-nav-link>
                         <x-responsive-nav-link :href="route('certificates.index')" :active="request()->routeIs('certificates.*')">
                             {{ __('Certificados') }}
