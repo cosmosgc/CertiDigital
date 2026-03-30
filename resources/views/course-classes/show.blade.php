@@ -152,7 +152,7 @@ async function fetchClassData() {
         renderClass(data);
     } catch (error) {
         console.error('Failed to fetch class data:', error);
-        alert(`@json`(__('Erro ao carregar dados da turma')));
+        alert(@json(__('Erro ao carregar dados da turma')));
     }
 }
 
