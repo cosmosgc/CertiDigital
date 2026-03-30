@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ScheduleEvent;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
@@ -106,9 +107,18 @@ class ScheduleEventController extends Controller
             ? (bool) $data['is_all_day']
             : (bool) $request->boolean('is_all_day');
 
-        if ($isRecurring && ! array_key_exists('weekday', $data)) {
+        if ($isRecurring) {
+            $weekday = $data['weekday'] ?? null;
+            $startDate = $data['start_date'] ?? $request->input('start_date');
+
+            if ($weekday === null && $startDate) {
+                $data['weekday'] = Carbon::parse($startDate)->dayOfWeek;
+            }
+        }
+
+        if ($isRecurring && ($data['weekday'] ?? null) === null) {
             validator(
-                ['weekday' => null],
+                ['weekday' => $data['weekday'] ?? null],
                 ['weekday' => 'required|integer|min:0|max:6']
             )->validate();
         }
@@ -119,7 +129,11 @@ class ScheduleEventController extends Controller
         }
 
         if ($isRecurring && empty($data['end_date'])) {
-            $data['end_date'] = $data['start_date'] ?? $request->input('start_date');
+            $startDate = $data['start_date'] ?? $request->input('start_date');
+
+            if ($startDate) {
+                $data['end_date'] = Carbon::parse($startDate)->endOfYear()->toDateString();
+            }
         }
 
         return $data;

@@ -452,6 +452,16 @@ function addDays(date, amount) {
     return next;
 }
 
+function endOfYearIso(dateValue) {
+    const parsedDate = parseLocalDate(dateValue);
+
+    if (!parsedDate) {
+        return null;
+    }
+
+    return `${parsedDate.getFullYear()}-12-31`;
+}
+
 function startOfWeek(date) {
     const normalized = new Date(date);
     normalized.setHours(0, 0, 0, 0);
@@ -512,18 +522,30 @@ function updateSummaryCards(list) {
 function eventOccursOnDate(item, date) {
     const dateOnly = toIsoDate(date);
     const startDate = normalizeDateValue(item.start_date);
-    const endDate = normalizeDateValue(item.end_date) || startDate;
+    const endDate = normalizeDateValue(item.end_date);
 
     if (!startDate) {
         return false;
     }
 
     if (item.is_recurring_weekly) {
-        const weekday = date.getDay();
-        return dateOnly >= startDate && dateOnly <= endDate && Number(item.weekday) === weekday;
+        const recurrenceEndDate = endDate && endDate !== startDate
+            ? endDate
+            : endOfYearIso(startDate);
+        const weekday = Number.isInteger(item.weekday)
+            ? item.weekday
+            : (parseLocalDate(item.start_date)?.getDay() ?? null);
+
+        if (weekday === null) {
+            return false;
+        }
+
+        return dateOnly >= startDate
+            && (!recurrenceEndDate || dateOnly <= recurrenceEndDate)
+            && weekday === date.getDay();
     }
 
-    return dateOnly >= startDate && dateOnly <= endDate;
+    return dateOnly >= startDate && (!endDate || dateOnly <= endDate);
 }
 
 function eventTimeLabel(item) {
