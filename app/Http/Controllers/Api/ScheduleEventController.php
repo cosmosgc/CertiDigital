@@ -82,15 +82,15 @@ class ScheduleEventController extends Controller
 
     private function validateData(Request $request, bool $partial = false): array
     {
-        $required = $partial ? 'sometimes|required' : 'required';
+        $required = $partial ? ['sometimes', 'required'] : ['required'];
 
         $data = $request->validate([
             'course_class_id' => 'nullable|exists:course_classes,id',
-            'title' => [$required, 'string', 'max:255'],
-            'event_type' => [$required, 'string', Rule::in(self::EVENT_TYPES)],
+            'title' => [...$required, 'string', 'max:255'],
+            'event_type' => [...$required, 'string', Rule::in(self::EVENT_TYPES)],
             'description' => 'nullable|string',
             'location' => 'nullable|string|max:255',
-            'start_date' => [$required, 'date'],
+            'start_date' => [...$required, 'date'],
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'start_time' => 'nullable|date_format:H:i',
             'end_time' => 'nullable|date_format:H:i|after:start_time',

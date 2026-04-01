@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="min-h-screen bg-gray-100 py-12 px-4">
+<div class="min-h-screen bg-gray-800 py-12 px-4">
     <div class="max-w-2xl mx-auto bg-white rounded-lg shadow p-8">
         <h1 class="text-3xl font-bold text-gray-900 mb-8">Personalização do Certificado</h1>
 
