@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\CertificateController;
 use App\Http\Controllers\Api\CourseEnrollmentController;
 use App\Http\Controllers\Api\VerificationLogController;
 use App\Http\Controllers\Api\ScheduleEventController;
+use App\Http\Controllers\Api\StudentAnnotationController;
 
 Route::name('api.')->group(function () {
     Route::get('/user', function (Request $request) {
@@ -50,10 +51,12 @@ Route::name('api.')->group(function () {
         Route::post('course-class-attendances/{course_class_attendance}/records', [CourseClassAttendanceRecordController::class, 'store'])->name('course-class-attendances.records.store');
         Route::delete('course-class-attendance-records/{course_class_attendance_record}', [CourseClassAttendanceRecordController::class, 'destroy'])->name('course-class-attendance-records.destroy');
         Route::apiResource('students', StudentController::class)->only(['store', 'update', 'destroy']);
+        Route::get('admin/students/{student}', [StudentController::class, 'detail'])->name('admin.students.show');
         Route::apiResource('instructors', InstructorController::class)->only(['store', 'update', 'destroy']);
         Route::apiResource('schedule-events', ScheduleEventController::class)->only(['store', 'update', 'destroy']);
         Route::apiResource('certificates', CertificateController::class)->only(['store', 'update', 'destroy']);
         Route::apiResource('course-enrollments', CourseEnrollmentController::class);
+        Route::apiResource('student-annotations', StudentAnnotationController::class);
         Route::apiResource('verification-logs', VerificationLogController::class)->only(['index', 'store', 'show', 'destroy']);
 
         // admin user/role management endpoints

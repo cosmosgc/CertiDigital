@@ -47,4 +47,9 @@ class CourseClass extends Model
     {
         return $this->hasMany(ScheduleEvent::class)->orderBy('start_date')->orderBy('start_time');
     }
+
+    public function studentAnnotations()
+    {
+        return $this->hasMany(StudentAnnotation::class)->orderByDesc('annotation_date')->orderByDesc('id');
+    }
 }

@@ -71,6 +71,45 @@
                 <div id="attendanceRoster" class="mt-6 grid gap-3 sm:grid-cols-2"></div>
             </div>
         </section>
+
+        <section class="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-gray-200">
+            <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-900">{{ __('Nova anotação de aluno') }}</h2>
+                    <p class="mt-1 text-sm text-gray-500">{{ __('Selecione um aluno presente nesta sessão para registrar uma anotação já vinculada ao registro de presença.') }}</p>
+                </div>
+                <div id="annotationContext" class="rounded-2xl bg-sky-50 px-4 py-3 text-sm text-sky-800 ring-1 ring-sky-100">
+                    {{ __('Nenhum aluno selecionado.') }}
+                </div>
+            </div>
+
+            <form id="annotationForm" class="mt-6 grid gap-4 lg:grid-cols-[0.9fr,1.1fr]">
+                <div class="grid gap-4">
+                    <div>
+                        <label for="annotationStudent" class="block text-sm font-medium text-gray-700">{{ __('Aluno') }}</label>
+                        <select id="annotationStudent" name="student_id" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm"></select>
+                    </div>
+                    <div>
+                        <label for="annotationDate" class="block text-sm font-medium text-gray-700">{{ __('Data') }}</label>
+                        <input id="annotationDate" name="annotation_date" type="date" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
+                    </div>
+                    <div>
+                        <label for="annotationWarningLevel" class="block text-sm font-medium text-gray-700">{{ __('Nível de alerta') }}</label>
+                        <select id="annotationWarningLevel" name="warning_level" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm"></select>
+                    </div>
+                </div>
+                <div class="grid gap-4">
+                    <div>
+                        <label for="annotationNotes" class="block text-sm font-medium text-gray-700">{{ __('Anotação') }}</label>
+                        <textarea id="annotationNotes" name="notes" rows="6" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm"></textarea>
+                    </div>
+                    <div class="flex flex-wrap gap-3">
+                        <button type="submit" class="rounded-xl bg-sky-600 px-4 py-2 text-white">{{ __('Salvar anotação') }}</button>
+                        <button type="button" id="clearAnnotationButton" class="rounded-xl bg-white px-4 py-2 text-gray-700 ring-1 ring-gray-300">{{ __('Limpar') }}</button>
+                    </div>
+                </div>
+            </form>
+        </section>
     </div>
 </div>
 
@@ -89,10 +128,27 @@ const attendanceForm = document.getElementById('attendanceForm');
 const attendanceRoster = document.getElementById('attendanceRoster');
 const deleteAttendanceButton = document.getElementById('deleteAttendanceButton');
 const refreshButton = document.getElementById('refreshButton');
+const annotationForm = document.getElementById('annotationForm');
+const annotationStudent = document.getElementById('annotationStudent');
+const annotationDate = document.getElementById('annotationDate');
+const annotationWarningLevel = document.getElementById('annotationWarningLevel');
+const annotationNotes = document.getElementById('annotationNotes');
+const annotationContext = document.getElementById('annotationContext');
+const clearAnnotationButton = document.getElementById('clearAnnotationButton');
 const classShowUrl = @json(route('course-classes.show', $courseClass));
+const studentAnnotationStoreUrl = @json(route('api.student-annotations.store'));
+
 let classData = null;
 let attendanceData = null;
 
+const warningLabels = [
+    @json(__('0 - Nota simples')),
+    @json(__('1 - Observação leve')),
+    @json(__('2 - Atenção')),
+    @json(__('3 - Advertência séria')),
+    @json(__('4 - Advertência grave')),
+];
+annotationDate.value = new Date().toISOString().slice(0, 10);
 function formatHours(value) {
     const numeric = Number(value ?? 0);
     return `${numeric % 1 === 0 ? numeric.toFixed(0) : numeric.toFixed(2)}h`;
@@ -110,6 +166,92 @@ function getAttendance() {
 
 function getAttendanceRecordMap() {
     return new Map((attendanceData?.records || []).map(record => [String(record.student_id), record]));
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
+function populateAnnotationWarningLevels() {
+    annotationWarningLevel.innerHTML = warningLabels.map((label, index) => `
+        <option value="${index}">${label}</option>
+    `).join('');
+}
+
+function getAnnotationStudentOptions() {
+    const attendanceRecordMap = getAttendanceRecordMap();
+
+    return (classData?.enrollments || [])
+        .map(enrollment => {
+            const record = attendanceRecordMap.get(String(enrollment.student_id));
+
+            if (!record) {
+                return null;
+            }
+
+            return {
+                studentId: enrollment.student_id,
+                recordId: record.id,
+                label: `${enrollment.student?.full_name || ''} • ${enrollment.student?.email || ''}`,
+            };
+        })
+        .filter(Boolean)
+        .sort((left, right) => left.label.localeCompare(right.label));
+}
+
+function renderAnnotationStudentOptions(selectedStudentId = '') {
+    const options = getAnnotationStudentOptions();
+
+    annotationStudent.innerHTML = `
+        <option value="">{{ __('Selecione um aluno presente') }}</option>
+        ${options.map(option => `
+            <option value="${option.studentId}" data-record-id="${option.recordId}" ${String(option.studentId) === String(selectedStudentId) ? 'selected' : ''}>
+                ${escapeHtml(option.label)}
+            </option>
+        `).join('')}
+    `;
+
+    updateAnnotationContext();
+}
+
+function updateAnnotationContext() {
+    const selectedOption = annotationStudent.selectedOptions[0];
+    const recordId = selectedOption?.dataset.recordId;
+    const studentLabel = selectedOption?.textContent?.trim();
+
+    if (!recordId) {
+        annotationContext.textContent = @json(__('Nenhum aluno selecionado.'));
+        return;
+    }
+
+    annotationContext.textContent = `${studentLabel} • {{ __('Registro de presença') }} #${recordId}`;
+}
+
+function selectAnnotationTarget(studentId, recordId) {
+    const targetOption = Array.from(annotationStudent.options).find(option => (
+        String(option.value) === String(studentId) && String(option.dataset.recordId) === String(recordId)
+    ));
+
+    if (!targetOption) {
+        return;
+    }
+
+    annotationStudent.value = String(studentId);
+    updateAnnotationContext();
+    annotationNotes.focus();
+    annotationForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function resetAnnotationForm() {
+    annotationForm.reset();
+    annotationDate.value = new Date().toISOString().slice(0, 10);
+    annotationWarningLevel.value = '0';
+    renderAnnotationStudentOptions('');
 }
 
 function getProgressPercent(hours, workload) {
@@ -148,6 +290,7 @@ function renderAttendance() {
     attendanceForm.name.value = attendanceData.name ?? '';
     attendanceForm.attendance_date.value = formatDateInputValue(attendanceData.attendance_date);
     attendanceForm.duration_hours.value = attendanceData.duration_hours ?? 1;
+    renderAnnotationStudentOptions(annotationStudent.value);
 
     const enrollments = classData?.enrollments || [];
     const attendanceRecordMap = getAttendanceRecordMap();
@@ -169,8 +312,7 @@ function renderAttendance() {
         const progressPercent = getProgressPercent(progressHours, workloadHours);
 
         return `
-            <button
-                type="button"
+            <div
                 class="attendanceToggle relative w-full rounded-2xl border p-4 pr-24 text-left transition ${present ? 'border-emerald-300 bg-emerald-50 hover:bg-emerald-100/70' : 'border-gray-200 bg-white hover:bg-gray-50'}"
                 data-student-id="${enrollment.student_id}"
                 data-record-id="${record?.id ?? ''}"
@@ -188,7 +330,21 @@ function renderAttendance() {
                     <span class="text-gray-500">{{ __('Progresso atual') }}</span>
                     <span class="font-medium text-gray-900">${formatHours(progressHours)} (${progressPercent}%)</span>
                 </div>
-            </button>
+                <div class="mt-4 flex justify-end">
+                    ${present ? `
+                        <button
+                            type="button"
+                            class="openAnnotationButton rounded-xl bg-sky-600 px-3 py-2 text-sm font-medium text-white"
+                            data-student-id="${enrollment.student_id}"
+                            data-record-id="${record.id}"
+                        >
+                            {{ __('Anotar ocorrência') }}
+                        </button>
+                    ` : `
+                        <span class="text-xs text-gray-400">{{ __('Crie o registro de presença para anotar nesta sessão.') }}</span>
+                    `}
+                </div>
+            </div>
         `;
     }).join('');
 }
@@ -222,6 +378,13 @@ attendanceForm.addEventListener('submit', async (e) => {
 });
 
 attendanceRoster.addEventListener('click', async (e) => {
+    const annotationButton = e.target.closest('.openAnnotationButton');
+    if (annotationButton) {
+        e.stopPropagation();
+        selectAnnotationTarget(annotationButton.dataset.studentId, annotationButton.dataset.recordId);
+        return;
+    }
+
     const toggleButton = e.target.closest('.attendanceToggle');
     if (!toggleButton) return;
 
@@ -288,7 +451,49 @@ deleteAttendanceButton.addEventListener('click', async () => {
 });
 
 refreshButton.addEventListener('click', fetchAttendanceData);
+annotationStudent.addEventListener('change', updateAnnotationContext);
+clearAnnotationButton.addEventListener('click', resetAnnotationForm);
+annotationForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
+    const selectedOption = annotationStudent.selectedOptions[0];
+    const recordId = selectedOption?.dataset.recordId;
+
+    if (!annotationStudent.value || !recordId) {
+        alert(@json(__('Selecione um aluno com presença registrada nesta sessão.')));
+        return;
+    }
+
+    const res = await fetch(studentAnnotationStoreUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token,
+            'X-User-Id': currentUserId,
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            user_id: currentUserId,
+            student_id: Number(annotationStudent.value),
+            course_class_id: classId,
+            course_class_attendance_record_id: Number(recordId),
+            annotation_date: annotationDate.value,
+            warning_level: Number(annotationWarningLevel.value),
+            notes: annotationNotes.value
+        })
+    });
+
+    if (res.ok) {
+        resetAnnotationForm();
+        alert(@json(__('Anotação salva com sucesso.')));
+    } else {
+        const error = await res.json().catch(() => null);
+        alert(error?.message || @json(__('Erro ao salvar anotação.')));
+    }
+});
+
+populateAnnotationWarningLevels();
 fetchAttendanceData();
 </script>
 @endsection

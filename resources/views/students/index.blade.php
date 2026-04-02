@@ -77,13 +77,15 @@ async function fetchStudents() {
 function renderStudents(list) {
     studentsTableBody.innerHTML = '';
     (list || []).forEach(s => {
+        const showUrl = `{{ route("students.show", ["student" => "__ID__"]) }}`.replace('__ID__', s.id);
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td class="p-2">${s.id}</td>
-            <td class="p-2">${s.full_name}</td>
+            <td class="p-2"><a class="font-medium text-indigo-700 hover:text-indigo-900" href="${showUrl}">${s.full_name}</a></td>
             <td class="p-2">${s.email}</td>
             <td class="p-2">${s.document_id || ''}</td>
             <td class="p-2">
+                <a class="px-2 py-1 bg-sky-500 text-white rounded inline-block" href="${showUrl}">{{ __('Ver') }}</a>
                 <button class="editBtn px-2 py-1 bg-yellow-400 rounded" data-id="${s.id}">{{ __('Editar') }}</button>
                 <button class="deleteBtn px-2 py-1 bg-red-500 text-white rounded" data-id="${s.id}">{{ __('Excluir') }}</button>
             </td>

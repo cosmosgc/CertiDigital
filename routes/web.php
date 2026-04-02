@@ -6,6 +6,7 @@ use App\Http\Controllers\ScheduleEventController;
 use App\Models\CourseClass;
 use App\Models\CourseClassAttendance;
 use App\Models\CourseEnrollment;
+use App\Models\Student;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -29,6 +30,9 @@ Route::middleware('auth')->group(function () {
     // administrative pages (only for users with the `admin` role)
     Route::middleware('role:admin')->group(function () {
         Route::view('/students', 'students.index')->name('students.index');
+        Route::get('/students/{student}', function (Student $student) {
+            return view('students.show', compact('student'));
+        })->name('students.show');
         Route::view('/instructors', 'instructors.index')->name('instructors.index');
         Route::view('/courses', 'courses.index')->name('courses.index');
         Route::view('/course-classes', 'course-classes.index')->name('course-classes.index');

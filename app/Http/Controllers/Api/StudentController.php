@@ -36,6 +36,20 @@ class StudentController extends Controller
         return response()->json($student, Response::HTTP_OK);
     }
 
+    public function detail(Student $student)
+    {
+        $student->load([
+            'courses',
+            'certificates',
+            'enrollments.course',
+            'enrollments.courseClass.instructor',
+            'annotations.courseClass.course',
+            'annotations.attendanceRecord.attendance',
+        ]);
+
+        return response()->json($student, Response::HTTP_OK);
+    }
+
     public function update(Request $request, Student $student)
     {
         $data = $request->validate([

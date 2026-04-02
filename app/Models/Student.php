@@ -42,4 +42,9 @@ class Student extends Model
     {
         return $this->hasMany(Certificate::class);
     }
+
+    public function annotations()
+    {
+        return $this->hasMany(StudentAnnotation::class)->orderByDesc('annotation_date')->orderByDesc('id');
+    }
 }

@@ -23,4 +23,11 @@ class CourseClassAttendanceRecord extends Model
     {
         return $this->belongsTo(Student::class);
     }
+
+    public function annotations()
+    {
+        return $this->hasMany(StudentAnnotation::class, 'course_class_attendance_record_id')
+            ->orderByDesc('annotation_date')
+            ->orderByDesc('id');
+    }
 }
