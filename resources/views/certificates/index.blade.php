@@ -208,7 +208,7 @@ certificatesTableBody.addEventListener('click', async (e) => {
         if (!confirm(@json(__('Excluir certificado?')))) return;
         const id = e.target.dataset.id;
         try {
-            await fetch('{{ route("api.certificates.destroy", ":id") }}'.replace(':id', id), {
+            const res = await fetch('{{ route("api.certificates.destroy", ":id") }}'.replace(':id', id), {
                 method: 'DELETE',
                 headers: {
                     'X-CSRF-TOKEN': token,
@@ -217,7 +217,13 @@ certificatesTableBody.addEventListener('click', async (e) => {
                 },
                 credentials: 'same-origin'
             });
-            fetchCertificates();
+            if (res.ok) {
+                alert(@json(__('Certificado excluído com sucesso!')));
+                await fetchCertificates();
+            } else {
+                const errorData = await res.json().catch(() => ({}));
+                alert(errorData.message || @json(__('Erro ao excluir certificado')));
+            }
         } catch (err) {
             console.error('Failed to delete certificate', err);
             alert(@json(__('Erro ao excluir certificado')));
