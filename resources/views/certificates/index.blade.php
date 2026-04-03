@@ -92,6 +92,7 @@
 
 <script>
 const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+const userId = {{ auth()->id() ?? 'null' }};
 const certificatesTableBody = document.querySelector('#certificatesTable tbody');
 const formContainer = document.getElementById('formContainer');
 const certificateForm = document.getElementById('certificateForm');
@@ -211,6 +212,7 @@ certificatesTableBody.addEventListener('click', async (e) => {
                 method: 'DELETE',
                 headers: {
                     'X-CSRF-TOKEN': token,
+                    'X-User-Id': userId,
                     'Accept': 'application/json'
                 },
                 credentials: 'same-origin'
