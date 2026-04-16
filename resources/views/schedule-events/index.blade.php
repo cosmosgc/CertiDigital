@@ -111,6 +111,18 @@
         </div>
 
         <div class="print-hide mt-6 rounded-2xl border border-gray-200 bg-white p-4 sm:p-5">
+            <div class="mb-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                        <p class="text-sm font-semibold text-slate-900">{{ __('Turmas ativas') }}</p>
+                        <p class="mt-1 text-sm text-slate-500">{{ __('Clique em uma turma para filtrar a agenda. Clique novamente para remover o filtro.') }}</p>
+                    </div>
+                    <div id="courseClassGridStatus" class="text-xs font-medium uppercase tracking-[0.18em] text-slate-400"></div>
+                </div>
+
+                <div id="courseClassGrid" class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3"></div>
+            </div>
+
             <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
                 <div>
                     <label for="courseClassFilter" class="block text-sm font-medium text-gray-700">{{ __('Filtrar por turma') }}</label>
@@ -330,6 +342,8 @@ const weeklyCount = document.getElementById('weeklyCount');
 const specialCount = document.getElementById('specialCount');
 const upcomingCount = document.getElementById('upcomingCount');
 const courseClassFilter = document.getElementById('courseClassFilter');
+const courseClassGrid = document.getElementById('courseClassGrid');
+const courseClassGridStatus = document.getElementById('courseClassGridStatus');
 const eventTypeFilter = document.getElementById('eventTypeFilter');
 const weekRangeLabel = document.getElementById('weekRangeLabel');
 const weeklyPlannerHead = document.getElementById('weeklyPlannerHead');
@@ -392,6 +406,72 @@ async function fetchAllPages(url) {
     return items;
 }
 
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function getFirstName(fullName) {
+    return String(fullName || '').trim().split(/\s+/).filter(Boolean)[0] || '';
+}
+
+function getCourseClassModality(courseClass) {
+    return courseClass?.course?.modality || '';
+}
+
+function getCourseClassTone(modality) {
+    const tones = {
+        online: {
+            chip: 'bg-sky-100 text-sky-700',
+            card: 'border-sky-200 bg-sky-50/70 hover:border-sky-300 hover:bg-sky-100/70',
+            accent: 'bg-sky-500',
+            selected: 'border-sky-500 bg-sky-100 shadow-sky-100 ring-sky-200',
+        },
+        in_person: {
+            chip: 'bg-emerald-100 text-emerald-700',
+            card: 'border-emerald-200 bg-emerald-50/70 hover:border-emerald-300 hover:bg-emerald-100/70',
+            accent: 'bg-emerald-500',
+            selected: 'border-emerald-500 bg-emerald-100 shadow-emerald-100 ring-emerald-200',
+        },
+        hybrid: {
+            chip: 'bg-amber-100 text-amber-700',
+            card: 'border-amber-200 bg-amber-50/70 hover:border-amber-300 hover:bg-amber-100/80',
+            accent: 'bg-amber-500',
+            selected: 'border-amber-500 bg-amber-100 shadow-amber-100 ring-amber-200',
+        },
+        default: {
+            chip: 'bg-slate-100 text-slate-700',
+            card: 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50',
+            accent: 'bg-slate-500',
+            selected: 'border-slate-500 bg-slate-50 shadow-slate-100 ring-slate-200',
+        },
+    };
+
+    return tones[modality] || tones.default;
+}
+
+function getCourseClassModalityLabel(modality) {
+    const labels = {
+        online: @json(__('Online')),
+        in_person: @json(__('Presencial')),
+        hybrid: @json(__('Híbrido')),
+    };
+
+    return labels[modality] || @json(__('Turma'));
+}
+
+function getCourseClassStudentsCount(courseClass) {
+    return Array.isArray(courseClass?.students) ? courseClass.students.length : 0;
+}
+
+function getCourseClassAttendancesCount(courseClass) {
+    return Array.isArray(courseClass?.attendances) ? courseClass.attendances.length : 0;
+}
+
 function populateCourseClassOptions(selectedId = '') {
     if (!scheduleEventForm) {
         return;
@@ -416,6 +496,87 @@ function populateCourseClassFilterOptions(selectedId = '') {
             </option>
         `).join('')}
     `;
+}
+
+function renderCourseClassGrid(selectedId = '') {
+    if (!courseClassGrid || !courseClassGridStatus) {
+        return;
+    }
+
+    const selectedClass = courseClasses.find(courseClass => String(courseClass.id) === String(selectedId));
+    courseClassGridStatus.textContent = selectedClass
+        ? `${@json(__('Ativa'))}: ${selectedClass.name}`
+        : @json(__('Todas visíveis'));
+
+    if (!courseClasses.length) {
+        courseClassGrid.innerHTML = `
+            <div class="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
+                {{ __('Nenhuma turma disponível para seleção.') }}
+            </div>
+        `;
+        return;
+    }
+
+    courseClassGrid.innerHTML = courseClasses.map(courseClass => {
+        const isSelected = String(courseClass.id) === String(selectedId);
+        const modality = getCourseClassModality(courseClass);
+        const tone = getCourseClassTone(modality);
+        const studentsCount = getCourseClassStudentsCount(courseClass);
+        const attendancesCount = getCourseClassAttendancesCount(courseClass);
+        const instructorFullName = courseClass.instructor?.full_name || @json(__('Instrutor não definido'));
+        const instructorFirstName = getFirstName(instructorFullName) || @json(__('Sem instrutor'));
+        const courseTitle = courseClass.course?.title || @json(__('Curso não informado'));
+        const description = courseClass.description || @json(__('Sem observações adicionais.'));
+
+        return `
+            <button
+                type="button"
+                class="course-class-card group relative overflow-visible rounded-2xl border p-4 text-left shadow-sm transition duration-200 ${tone.card} ${isSelected ? `${tone.selected} ring-2` : ''}"
+                data-id="${courseClass.id}"
+                aria-pressed="${isSelected ? 'true' : 'false'}"
+            >
+                <span class="absolute inset-y-4 left-0 w-1 rounded-r-full ${tone.accent}"></span>
+                <div class="pl-3">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="truncate text-base font-semibold text-slate-900">${escapeHtml(courseClass.name || '')}</div>
+                            <div class="mt-1 truncate text-sm text-slate-500">${escapeHtml(courseTitle)}</div>
+                        </div>
+                        <span class="rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${tone.chip}">
+                            ${escapeHtml(getCourseClassModalityLabel(modality))}
+                        </span>
+                    </div>
+
+                    <div class="mt-4 grid grid-cols-2 gap-2 text-xs">
+                        <div class="rounded-xl bg-white/80 px-3 py-2 text-slate-600 ring-1 ring-black/5">
+                            <div class="font-semibold text-slate-900">${studentsCount}</div>
+                            <div>{{ __('Alunos') }}</div>
+                        </div>
+                        <div class="rounded-xl bg-white/80 px-3 py-2 text-slate-600 ring-1 ring-black/5">
+                            <div class="font-semibold text-slate-900">${attendancesCount}</div>
+                            <div>{{ __('Presenças') }}</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 flex items-center justify-between gap-3 text-xs text-slate-500">
+                        <span class="truncate">{{ __('Instrutor') }}: <span class="font-medium text-slate-700">${escapeHtml(instructorFirstName)}</span></span>
+                        <span class="font-medium text-slate-400">${isSelected ? @json(__('Selecionada')) : @json(__('Filtrar'))}</span>
+                    </div>
+                </div>
+
+                <div class="pointer-events-none absolute left-4 right-4 top-full z-20 mt-2 hidden rounded-2xl border border-slate-200 bg-slate-950/95 p-4 text-sm text-slate-100 shadow-2xl group-hover:block group-focus:block">
+                    <div class="font-semibold text-white">${escapeHtml(courseClass.name || '')}</div>
+                    <div class="mt-1 text-slate-300">${escapeHtml(courseTitle)}</div>
+                    <div class="mt-3 grid gap-2 text-xs text-slate-200">
+                        <div><span class="text-slate-400">{{ __('Instrutor') }}:</span> ${escapeHtml(instructorFullName)}</div>
+                        <div><span class="text-slate-400">{{ __('Alunos') }}:</span> ${studentsCount}</div>
+                        <div><span class="text-slate-400">{{ __('Registros de presença') }}:</span> ${attendancesCount}</div>
+                        <div><span class="text-slate-400">{{ __('Descrição') }}:</span> ${escapeHtml(description)}</div>
+                    </div>
+                </div>
+            </button>
+        `;
+    }).join('');
 }
 
 function normalizeDateValue(dateValue) {
@@ -820,6 +981,7 @@ async function loadDependencies() {
         populateCourseClassOptions();
     }
     populateCourseClassFilterOptions(initialFilters.course_class_id);
+    renderCourseClassGrid(initialFilters.course_class_id);
     eventTypeFilter.value = initialFilters.event_type;
 }
 
@@ -861,11 +1023,28 @@ document.getElementById('applyFiltersBtn').addEventListener('click', () => {
 document.getElementById('resetFiltersBtn').addEventListener('click', () => {
     courseClassFilter.value = '';
     eventTypeFilter.value = '';
+    renderCourseClassGrid('');
     fetchScheduleEvents();
 });
 
-courseClassFilter.addEventListener('change', fetchScheduleEvents);
+courseClassFilter.addEventListener('change', () => {
+    renderCourseClassGrid(courseClassFilter.value);
+    fetchScheduleEvents();
+});
 eventTypeFilter.addEventListener('change', fetchScheduleEvents);
+
+courseClassGrid?.addEventListener('click', (event) => {
+    const card = event.target.closest('.course-class-card');
+
+    if (!card) {
+        return;
+    }
+
+    const selectedId = card.dataset.id || '';
+    courseClassFilter.value = courseClassFilter.value === selectedId ? '' : selectedId;
+    renderCourseClassGrid(courseClassFilter.value);
+    fetchScheduleEvents();
+});
 
 document.getElementById('printPlannerBtn').addEventListener('click', () => {
     runPrint('print-planner');
