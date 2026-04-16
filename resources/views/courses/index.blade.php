@@ -63,6 +63,40 @@
     </div>
 </div>
 
+<style>
+    .modality-badge {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 9999px;
+        padding: 0.35rem 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .modality-badge--online {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .modality-badge--in-person {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .modality-badge--hybrid {
+        background: #fef3c7;
+        color: #b45309;
+    }
+
+    .modality-badge--default {
+        background: #e5e7eb;
+        color: #4b5563;
+    }
+</style>
+
 <script>
 const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 const currentUserId = @json(auth()->id());
@@ -78,18 +112,46 @@ async function fetchCourses() {
     renderCourses(data.data || data);
 }
 
+function getModalityMeta(modality) {
+    const map = {
+        online: {
+            label: @json(__('Online')),
+            className: 'modality-badge--online',
+        },
+        in_person: {
+            label: @json(__('Presencial')),
+            className: 'modality-badge--in-person',
+        },
+        hybrid: {
+            label: @json(__('Híbrido')),
+            className: 'modality-badge--hybrid',
+        },
+    };
+
+    return map[modality] || {
+        label: modality || @json(__('Não informado')),
+        className: 'modality-badge--default',
+    };
+}
+
 function renderCourses(list) {
     coursesTableBody.innerHTML = '';
     (list || []).forEach(s => {
+        const modality = getModalityMeta(s.modality);
         const tr = document.createElement('tr');
+        tr.className = 'border-b border-gray-100 text-sm text-gray-700 last:border-0';
         tr.innerHTML = `
-            <td class="p-2">${s.id}</td>
-            <td class="p-2">${s.title}</td>
-            <td class="p-2">${s.workload_hours || ''}</td>
-            <td class="p-2">${s.modality || ''}</td>
-            <td class="p-2">
-                <button class="editBtn px-2 py-1 bg-yellow-400 rounded" data-id="${s.id}">{{ __('Editar') }}</button>
-                <button class="deleteBtn px-2 py-1 bg-red-500 text-white rounded" data-id="${s.id}">{{ __('Excluir') }}</button>
+            <td class="p-3 font-medium text-gray-500">${s.id}</td>
+            <td class="p-3 font-semibold text-gray-900">${s.title}</td>
+            <td class="p-3">${s.workload_hours || ''}</td>
+            <td class="p-3">
+                <span class="modality-badge ${modality.className}">${modality.label}</span>
+            </td>
+            <td class="p-3">
+                <div class="flex flex-wrap gap-2">
+                    <button class="editBtn rounded-lg bg-yellow-400 px-3 py-1.5 text-sm font-medium text-yellow-950 transition hover:bg-yellow-300" data-id="${s.id}">{{ __('Editar') }}</button>
+                    <button class="deleteBtn rounded-lg bg-red-500 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-red-600" data-id="${s.id}">{{ __('Excluir') }}</button>
+                </div>
             </td>
         `;
         coursesTableBody.appendChild(tr);
