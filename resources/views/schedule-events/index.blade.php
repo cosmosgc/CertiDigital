@@ -975,6 +975,19 @@ function buildPayload() {
     };
 }
 
+function scrollToFormContainer() {
+    if (!formContainer) {
+        return;
+    }
+
+    window.requestAnimationFrame(() => {
+        formContainer.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+        });
+    });
+}
+
 async function loadDependencies() {
     courseClasses = await fetchAllPages('{{ route("api.course-classes.index") }}');
     if (canManageScheduleEvents) {
@@ -1059,6 +1072,7 @@ if (canManageScheduleEvents) {
         resetForm();
         formTitle.textContent = @json(__('Criar evento'));
         formContainer.classList.remove('hidden');
+        scrollToFormContainer();
     });
 
     document.getElementById('cancelBtn').addEventListener('click', () => {
@@ -1093,6 +1107,7 @@ if (canManageScheduleEvents) {
 
             formTitle.textContent = @json(__('Editar evento'));
             formContainer.classList.remove('hidden');
+            scrollToFormContainer();
         }
 
         if (e.target.classList.contains('deleteBtn')) {
