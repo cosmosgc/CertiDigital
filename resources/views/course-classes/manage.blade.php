@@ -2,67 +2,95 @@
 
 @section('content')
 <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-    <div class="overflow-hidden shadow-sm sm:rounded-2xl p-6 space-y-6">
-        <div class="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
-            <div>
-                <a href="{{ route('course-classes.index') }}" class="text-sm text-indigo-600 hover:text-indigo-800">{{ __('Voltar para turmas') }}</a>
-                <h2 id="className" class="text-2xl font-semibold mt-1"></h2>
-                <p id="classMeta" class="text-sm text-gray-500"></p>
-            </div>
-            <div class="flex flex-col gap-3 sm:items-end">
-                <a href="{{ route('course-classes.attendance-report', $courseClass) }}" class="inline-flex items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">{{ __('Relatório de presença') }}</a>
-                <div class="rounded-2xl bg-gray-50 px-4 py-3 text-sm text-gray-600 ring-1 ring-gray-200">
-                    <div><strong>{{ __('Curso:') }}</strong> <span id="courseTitle"></span></div>
-                    <div><strong>{{ __('Instrutor:') }}</strong> <span id="instructorName"></span></div>
-                    <div><strong>{{ __('Carga horária:') }}</strong> <span id="workloadHours">0h</span></div>
-                    <div><strong>{{ __('Alunos:') }}</strong> <span id="studentCount">0</span></div>
+    <div class="space-y-6">
+        <section class="overflow-hidden rounded-[28px] bg-gradient-to-r from-amber-100 via-white to-cyan-100 p-6 shadow-sm ring-1 ring-slate-200">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div class="max-w-3xl">
+                    <a href="{{ route('course-classes.index') }}" class="text-sm font-medium text-sky-700 hover:text-sky-900">{{ __('Voltar para turmas') }}</a>
+                    <p class="mt-4 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{{ __('Gestão da turma') }}</p>
+                    <h2 id="className" class="mt-2 text-3xl font-semibold text-slate-900"></h2>
+                    <p id="classMeta" class="mt-2 text-sm text-slate-600"></p>
+                    <p id="classDescription" class="mt-4 max-w-2xl text-sm leading-6 text-slate-600"></p>
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    <a href="{{ route('course-classes.attendance-report', $courseClass) }}" class="inline-flex items-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-sm">{{ __('Relatório de presença') }}</a>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <div id="classDescription" class="text-sm text-gray-600"></div>
+        <section class="grid gap-4 md:grid-cols-4">
+            <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{{ __('Curso') }}</p>
+                <p id="courseTitle" class="mt-3 text-lg font-semibold text-slate-900"></p>
+            </div>
+            <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{{ __('Instrutor') }}</p>
+                <p id="instructorName" class="mt-3 text-lg font-semibold text-slate-900"></p>
+            </div>
+            <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{{ __('Carga horária') }}</p>
+                <p id="workloadHours" class="mt-3 text-3xl font-semibold text-slate-900">0h</p>
+            </div>
+            <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{{ __('Alunos') }}</p>
+                <p id="studentCount" class="mt-3 text-3xl font-semibold text-slate-900">0</p>
+            </div>
+        </section>
 
-        <div class="rounded-2xl border border-dashed border-emerald-300 bg-emerald-50/50 p-5">
-            <h3 class="text-lg font-semibold text-gray-900">{{ __('Adicionar aluno à turma') }}</h3>
-            <p class="mt-1 text-sm text-gray-600">{{ __('O progresso agora é calculado automaticamente pelas presenças registradas nas sessões da turma.') }}</p>
-            <form id="enrollmentForm" class="mt-4 space-y-4">
-                <input type="hidden" name="enrollment_id" />
-                <div class="grid gap-4 md:grid-cols-2">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">{{ __('Aluno') }}</label>
-                        <select name="student_id" required class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm"></select>
+        <div class="grid gap-6 xl:grid-cols-[1.05fr,0.95fr]">
+            <section class="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-emerald-200">
+                <h3 class="text-xl font-semibold text-slate-900">{{ __('Adicionar aluno à turma') }}</h3>
+                <p class="mt-1 text-sm text-slate-600">{{ __('Pesquise pelo nome ou e-mail e clique no aluno para preencher a matrícula rapidamente.') }}</p>
+
+                <form id="enrollmentForm" class="mt-5 space-y-4">
+                    <input type="hidden" name="enrollment_id" />
+                    <input type="hidden" name="student_id" />
+                    <div class="space-y-3">
+                        <div>
+                            <label for="studentSearchInput" class="block text-sm font-medium text-slate-700">{{ __('Buscar aluno') }}</label>
+                            <input id="studentSearchInput" type="text" autocomplete="off" class="mt-1 block w-full rounded-2xl border-slate-200 bg-slate-50 shadow-sm focus:border-emerald-400 focus:ring-emerald-400" placeholder="{{ __('Digite nome ou e-mail') }}">
+                        </div>
+                        <div id="selectedStudentCard" class="hidden rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900 ring-1 ring-emerald-200"></div>
+                        <div id="studentSearchResults" class="max-h-72 space-y-2 overflow-y-auto rounded-2xl bg-slate-50 p-2 ring-1 ring-slate-200"></div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">{{ __('Nota') }}</label>
-                        <input type="number" min="0" max="100" step="0.01" name="grade" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
+                        <label class="block text-sm font-medium text-slate-700">{{ __('Nota') }}</label>
+                        <input type="number" min="0" max="100" step="0.01" name="grade" class="mt-1 block w-full rounded-2xl border-slate-200 bg-white shadow-sm focus:border-emerald-400 focus:ring-emerald-400" />
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button type="submit" class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white">{{ __('Salvar matrícula') }}</button>
+                        <button type="button" id="cancelEdit" class="hidden rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-300">{{ __('Cancelar edição') }}</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-slate-200">
+                <h3 class="text-xl font-semibold text-slate-900">{{ __('Alunos matriculados') }}</h3>
+                <p class="mt-1 text-sm text-slate-600">{{ __('Visual mais leve para revisar progresso, nota e ações sem cansar a leitura.') }}</p>
+
+                <div class="mt-5 overflow-hidden rounded-3xl ring-1 ring-slate-200">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full table-auto bg-white" id="classStudentsTable">
+                            <thead class="bg-slate-50">
+                                <tr class="text-left text-sm text-slate-600">
+                                    <th class="px-4 py-3 font-semibold">{{ __('ID matrícula') }}</th>
+                                    <th class="px-4 py-3 font-semibold">{{ __('Aluno') }}</th>
+                                    <th class="px-4 py-3 font-semibold">{{ __('E-mail') }}</th>
+                                    <th class="px-4 py-3 font-semibold">{{ __('Progresso') }}</th>
+                                    <th class="px-4 py-3 font-semibold">{{ __('Nota') }}</th>
+                                    <th class="px-4 py-3 font-semibold">{{ __('Concluído') }}</th>
+                                    <th class="px-4 py-3 font-semibold">{{ __('Ações') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100"></tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="flex gap-2">
-                    <button type="submit" class="rounded-xl bg-emerald-600 px-4 py-2 text-white">{{ __('Salvar matrícula') }}</button>
-                    <button type="button" id="cancelEdit" class="hidden rounded-xl bg-white px-4 py-2 text-gray-700 ring-1 ring-gray-300">{{ __('Cancelar edição') }}</button>
-                </div>
-            </form>
-        </div>
-
-        <div class="overflow-hidden rounded-2xl border border-gray-200">
-            <table class="w-full table-auto" id="classStudentsTable">
-                <thead>
-                    <tr class="bg-gray-50 text-left text-sm text-gray-600">
-                        <th class="p-2">{{ __('ID matrícula') }}</th>
-                        <th class="p-2">{{ __('Aluno') }}</th>
-                        <th class="p-2">{{ __('E-mail') }}</th>
-                        <th class="p-2">{{ __('Progresso') }}</th>
-                        <th class="p-2">{{ __('Nota') }}</th>
-                        <th class="p-2">{{ __('Concluído') }}</th>
-                        <th class="p-2">{{ __('Ações') }}</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+            </section>
         </div>
 
         <div class="grid gap-6 lg:grid-cols-[1.1fr,0.9fr]">
-            <section class="rounded-2xl border border-cyan-200 bg-cyan-50/50 p-5">
+            <section class="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-cyan-200">
                 <h3 class="text-lg font-semibold text-gray-900">{{ __('Sessões de presença') }}</h3>
                 <p class="mt-1 text-sm text-gray-600">{{ __('Ao criar uma nova sessão, todos os alunos da turma começam marcados como presentes. Depois, você pode ajustar quem entrou atrasado ou faltou.') }}</p>
 
@@ -91,7 +119,7 @@
                 <div id="attendanceList" class="mt-6 grid gap-3"></div>
             </section>
 
-            <section class="rounded-2xl border border-gray-200 bg-white p-5">
+            <section class="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-slate-200">
                 <div class="flex items-start justify-between gap-4">
                     <div>
                         <h3 id="selectedAttendanceTitle" class="text-lg font-semibold text-gray-900">{{ __('Selecione uma sessão') }}</h3>
@@ -107,22 +135,57 @@
                     <button type="submit" class="rounded-xl bg-gray-900 px-4 py-2 text-white">{{ __('Adicionar aluno presente') }}</button>
                 </form>
 
-                <div class="mt-5 overflow-hidden rounded-2xl border border-gray-200">
+                <div class="mt-5 overflow-hidden rounded-3xl ring-1 ring-slate-200">
                     <table class="w-full table-auto" id="attendanceRecordsTable">
                         <thead>
-                            <tr class="bg-gray-50 text-left text-sm text-gray-600">
-                                <th class="p-2">{{ __('Aluno') }}</th>
-                                <th class="p-2">{{ __('E-mail') }}</th>
-                                <th class="p-2">{{ __('Ação') }}</th>
+                            <tr class="bg-slate-50 text-left text-sm text-slate-600">
+                                <th class="px-4 py-3">{{ __('Aluno') }}</th>
+                                <th class="px-4 py-3">{{ __('E-mail') }}</th>
+                                <th class="px-4 py-3">{{ __('Ação') }}</th>
                             </tr>
                         </thead>
-                        <tbody></tbody>
+                        <tbody class="divide-y divide-slate-100"></tbody>
                     </table>
                 </div>
             </section>
         </div>
     </div>
 </div>
+
+<style>
+#studentSearchResults:empty::before {
+    content: "{{ __('Nenhum aluno carregado.') }}";
+    display: block;
+    padding: 0.9rem 1rem;
+    color: rgb(100 116 139);
+    font-size: 0.875rem;
+}
+
+.student-search-result {
+    width: 100%;
+    border-radius: 1rem;
+    border: 1px solid rgb(226 232 240);
+    background: white;
+    padding: 0.9rem 1rem;
+    text-align: left;
+    transition: 0.2s ease;
+}
+
+.student-search-result:hover {
+    border-color: rgb(16 185 129);
+    background: rgb(236 253 245);
+}
+
+#classStudentsTable tbody tr,
+#attendanceRecordsTable tbody tr {
+    background: white;
+}
+
+#classStudentsTable tbody td,
+#attendanceRecordsTable tbody td {
+    color: rgb(15 23 42);
+}
+</style>
 
 <script>
 const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
@@ -138,6 +201,9 @@ const workloadHours = document.getElementById('workloadHours');
 const studentCount = document.getElementById('studentCount');
 const enrollmentForm = document.getElementById('enrollmentForm');
 const cancelEditBtn = document.getElementById('cancelEdit');
+const studentSearchInput = document.getElementById('studentSearchInput');
+const studentSearchResults = document.getElementById('studentSearchResults');
+const selectedStudentCard = document.getElementById('selectedStudentCard');
 const attendanceForm = document.getElementById('attendanceForm');
 const cancelAttendanceEditBtn = document.getElementById('cancelAttendanceEdit');
 const attendanceList = document.getElementById('attendanceList');
@@ -153,6 +219,7 @@ let classData = null;
 let allStudents = [];
 let allEnrollments = [];
 let selectedAttendanceId = null;
+let selectedEnrollmentStudent = null;
 
 function formatHours(value) {
     const numeric = Number(value ?? 0);
@@ -188,13 +255,71 @@ async function fetchAllPages(url) {
     return items;
 }
 
-function populateStudentOptions(selectedId = '') {
-    enrollmentForm.student_id.innerHTML = `
-        <option value="">{{ __('Selecione um aluno') }}</option>
-        ${allStudents.map(student => `
-            <option value="${student.id}" ${String(student.id) === String(selectedId) ? 'selected' : ''}>${student.full_name} (${student.email})</option>
-        `).join('')}
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
+function setSelectedEnrollmentStudent(student) {
+    selectedEnrollmentStudent = student || null;
+    enrollmentForm.student_id.value = student?.id || '';
+
+    if (!student) {
+        selectedStudentCard.classList.add('hidden');
+        selectedStudentCard.textContent = '';
+        return;
+    }
+
+    selectedStudentCard.classList.remove('hidden');
+    selectedStudentCard.innerHTML = `
+        <div class="font-semibold">${escapeHtml(student.full_name || '')}</div>
+        <div class="mt-1 text-xs text-emerald-700">${escapeHtml(student.email || '')}</div>
     `;
+}
+
+function getAvailableStudents() {
+    const enrolledStudentIds = new Set((classData?.enrollments || [])
+        .filter(enrollment => String(enrollment.id) !== String(enrollmentForm.enrollment_id.value || ''))
+        .map(enrollment => String(enrollment.student_id)));
+
+    return allStudents.filter(student => !enrolledStudentIds.has(String(student.id)));
+}
+
+function renderStudentSearchResults(query = '') {
+    const normalizedQuery = String(query || '').trim().toLowerCase();
+    const availableStudents = getAvailableStudents();
+    const results = availableStudents
+        .filter(student => {
+            if (!normalizedQuery) return true;
+
+            const haystack = `${student.full_name || ''} ${student.email || ''}`.toLowerCase();
+            return haystack.includes(normalizedQuery);
+        })
+        .slice(0, 12);
+
+    if (!results.length) {
+        studentSearchResults.innerHTML = `
+            <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-4 text-sm text-slate-500">
+                ${normalizedQuery ? @json(__('Nenhum aluno encontrado para essa busca.')) : @json(__('Todos os alunos disponíveis já estão matriculados nesta turma.'))}
+            </div>
+        `;
+        return;
+    }
+
+    studentSearchResults.innerHTML = results.map(student => `
+        <button
+            type="button"
+            class="student-search-result"
+            data-student-id="${student.id}"
+        >
+            <div class="text-sm font-semibold text-slate-900">${escapeHtml(student.full_name || '')}</div>
+            <div class="mt-1 text-xs text-slate-500">${escapeHtml(student.email || '')}</div>
+        </button>
+    `).join('');
 }
 
 function populateAttendanceRecordOptions() {
@@ -214,7 +339,7 @@ function populateAttendanceRecordOptions() {
 
 async function loadStudents() {
     allStudents = await fetchAllPages('{{ route("api.students.index") }}');
-    populateStudentOptions();
+    renderStudentSearchResults();
 }
 
 async function loadEnrollments() {
@@ -259,17 +384,29 @@ function renderClassData() {
         const progressHours = Number(enrollment.progress_hours ?? 0);
         const progressPercent = getProgressPercent(progressHours);
         const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50/80';
         tr.innerHTML = `
-            <td class="p-2">${enrollment.id}</td>
-            <td class="p-2">${enrollment.student?.full_name || ''}</td>
-            <td class="p-2">${enrollment.student?.email || ''}</td>
-            <td class="p-2">${formatHours(progressHours)} <span class="text-xs text-gray-500">(${progressPercent}%)</span></td>
-            <td class="p-2">${enrollment.grade ?? ''}</td>
-            <td class="p-2">${enrollment.completed ? @json(__('Sim')) : @json(__('Não'))}</td>
-            <td class="p-2 flex flex-wrap gap-2">
-                <a class="px-2 py-1 bg-slate-900 text-white rounded" href="${enrollmentShowBaseUrl.replace('__ENROLLMENT__', enrollment.id)}">{{ __('Ver aluno') }}</a>
-                <button class="editBtn px-2 py-1 bg-yellow-400 rounded" data-id="${enrollment.id}">{{ __('Editar') }}</button>
-                <button class="removeBtn px-2 py-1 bg-red-500 text-white rounded" data-id="${enrollment.id}">{{ __('Remover') }}</button>
+            <td class="px-4 py-4 text-sm">${enrollment.id}</td>
+            <td class="px-4 py-4">
+                <div class="font-semibold text-slate-900">${enrollment.student?.full_name || ''}</div>
+            </td>
+            <td class="px-4 py-4 text-sm text-slate-600">${enrollment.student?.email || ''}</td>
+            <td class="px-4 py-4">
+                <div class="font-medium text-slate-900">${formatHours(progressHours)}</div>
+                <div class="mt-1 text-xs text-slate-500">${progressPercent}%</div>
+            </td>
+            <td class="px-4 py-4 text-sm text-slate-700">${enrollment.grade ?? '—'}</td>
+            <td class="px-4 py-4">
+                <span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold ${enrollment.completed ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
+                    ${enrollment.completed ? @json(__('Sim')) : @json(__('Não'))}
+                </span>
+            </td>
+            <td class="px-4 py-4">
+                <div class="flex flex-wrap gap-2">
+                    <a class="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white" href="${enrollmentShowBaseUrl.replace('__ENROLLMENT__', enrollment.id)}">{{ __('Ver aluno') }}</a>
+                    <button class="editBtn rounded-xl bg-amber-100 px-3 py-2 text-sm font-medium text-amber-800" data-id="${enrollment.id}">{{ __('Editar') }}</button>
+                    <button class="removeBtn rounded-xl bg-rose-500 px-3 py-2 text-sm font-medium text-white" data-id="${enrollment.id}">{{ __('Remover') }}</button>
+                </div>
             </td>
         `;
         studentsTableBody.appendChild(tr);
@@ -281,6 +418,7 @@ function renderClassData() {
 
     studentsTable = new DataTable('#classStudentsTable');
 
+    renderStudentSearchResults(studentSearchInput.value);
     renderAttendanceList();
     renderSelectedAttendance();
 }
@@ -325,7 +463,7 @@ function renderSelectedAttendance() {
         attendanceRecordForm.classList.add('hidden');
         attendanceRecordsTableBody.innerHTML = `
             <tr>
-                <td colspan="3" class="p-4 text-sm text-gray-500">{{ __('Nenhuma sessão selecionada.') }}</td>
+                <td colspan="3" class="px-4 py-4 text-sm text-slate-500">{{ __('Nenhuma sessão selecionada.') }}</td>
             </tr>
         `;
         return;
@@ -339,18 +477,18 @@ function renderSelectedAttendance() {
     if (!attendance.records?.length) {
         attendanceRecordsTableBody.innerHTML = `
             <tr>
-                <td colspan="3" class="p-4 text-sm text-gray-500">{{ __('Nenhum aluno marcado como presente nesta sessão.') }}</td>
+                <td colspan="3" class="px-4 py-4 text-sm text-slate-500">{{ __('Nenhum aluno marcado como presente nesta sessão.') }}</td>
             </tr>
         `;
         return;
     }
 
     attendanceRecordsTableBody.innerHTML = attendance.records.map(record => `
-        <tr class="border-t border-gray-100">
-            <td class="p-2">${record.student?.full_name || ''}</td>
-            <td class="p-2">${record.student?.email || ''}</td>
-            <td class="p-2">
-                <button type="button" class="removeAttendanceRecordBtn rounded-lg bg-red-500 px-3 py-2 text-sm text-white" data-id="${record.id}">
+        <tr class="hover:bg-slate-50/80">
+            <td class="px-4 py-4">${record.student?.full_name || ''}</td>
+            <td class="px-4 py-4 text-sm text-slate-600">${record.student?.email || ''}</td>
+            <td class="px-4 py-4">
+                <button type="button" class="removeAttendanceRecordBtn rounded-lg bg-rose-500 px-3 py-2 text-sm text-white" data-id="${record.id}">
                     {{ __('Remover presença') }}
                 </button>
             </td>
@@ -361,8 +499,10 @@ function renderSelectedAttendance() {
 function resetEnrollmentForm() {
     enrollmentForm.reset();
     enrollmentForm.enrollment_id.value = '';
-    enrollmentForm.student_id.disabled = false;
-    populateStudentOptions();
+    studentSearchInput.disabled = false;
+    studentSearchInput.value = '';
+    setSelectedEnrollmentStudent(null);
+    renderStudentSearchResults();
     cancelEditBtn.classList.add('hidden');
 }
 
@@ -377,6 +517,21 @@ function resetAttendanceForm() {
 cancelEditBtn.addEventListener('click', resetEnrollmentForm);
 cancelAttendanceEditBtn.addEventListener('click', resetAttendanceForm);
 
+studentSearchInput.addEventListener('input', () => {
+    renderStudentSearchResults(studentSearchInput.value);
+});
+
+studentSearchResults.addEventListener('click', (e) => {
+    const button = e.target.closest('.student-search-result');
+    if (!button) return;
+
+    const student = allStudents.find(item => String(item.id) === String(button.dataset.studentId));
+    if (!student) return;
+
+    setSelectedEnrollmentStudent(student);
+    studentSearchInput.value = student.full_name || '';
+});
+
 studentsTableBody.addEventListener('click', async (e) => {
     if (e.target.classList.contains('editBtn')) {
         const enrollment = (classData.enrollments || []).find(item => String(item.id) === e.target.dataset.id);
@@ -384,8 +539,10 @@ studentsTableBody.addEventListener('click', async (e) => {
 
         enrollmentForm.enrollment_id.value = enrollment.id;
         enrollmentForm.grade.value = enrollment.grade ?? '';
-        populateStudentOptions(enrollment.student_id);
-        enrollmentForm.student_id.disabled = true;
+        studentSearchInput.value = enrollment.student?.full_name || '';
+        studentSearchInput.disabled = true;
+        setSelectedEnrollmentStudent(enrollment.student || null);
+        renderStudentSearchResults(studentSearchInput.value);
         cancelEditBtn.classList.remove('hidden');
     }
 
@@ -482,6 +639,12 @@ enrollmentForm.addEventListener('submit', async (e) => {
 
     const enrollmentId = enrollmentForm.enrollment_id.value;
     const selectedStudentId = enrollmentForm.student_id.value;
+
+    if (!selectedStudentId) {
+        alert(@json(__('Selecione um aluno na busca antes de salvar.')));
+        return;
+    }
+
     const existingEnrollment = (classData.enrollments || []).find(
         item => String(item.student_id) === String(selectedStudentId) && String(item.id) !== String(enrollmentId)
     );
