@@ -360,6 +360,8 @@ const initialFilters = {
     event_type: @json(request('event_type', '')),
 };
 
+const courseClassManageBaseUrl = @json(route('course-classes.show', ['courseClass' => '__ID__']));
+
 const typeLabels = {
     weekly_class: @json(__('Aula semanal')),
     exam: @json(__('Prova')),
@@ -785,7 +787,9 @@ function renderWeeklyPlanner(list) {
                             ${dayEvents.map(item => `
                                 <div class="rounded-xl border px-2 py-2 text-xs sm:px-3 sm:text-sm ${getBadgeClasses(item.event_type)}">
                                     <div class="font-semibold">${item.title}</div>
-                                    <div class="mt-1 text-xs opacity-80">${item.course_class?.name || typeLabels[item.event_type] || item.event_type}</div>
+                                    <div class="mt-1 text-xs opacity-80">
+                                        ${item.course_class ? `<a href="${courseClassManageBaseUrl.replace('__ID__', item.course_class.id)}" class="hover:underline font-medium">${item.course_class.name}</a>` : typeLabels[item.event_type] || item.event_type}
+                                    </div>
                                 </div>
                             `).join('') || '<div class="rounded-xl border border-dashed border-gray-200 px-3 py-4 text-center text-xs text-gray-400">{{ __('Livre') }}</div>'}
                         </div>
@@ -827,10 +831,10 @@ function renderCalendar(list) {
                 </div>
                 <div class="mt-1.5 space-y-1 sm:mt-2">
                     ${dayEvents.slice(0, 3).map(item => `
-                        <div class="truncate rounded-lg border px-1.5 py-1 text-[10px] sm:px-2 sm:text-[11px] ${getBadgeClasses(item.event_type)}">
+                        <a href="${item.course_class ? courseClassManageBaseUrl.replace('__ID__', item.course_class.id) : '#'}" class="truncate rounded-lg border px-1.5 py-1 text-[10px] sm:px-2 sm:text-[11px] ${getBadgeClasses(item.event_type)} hover:shadow-md transition inline-block max-w-full">
                             ${item.is_all_day ? '' : `${formatTime(item.start_time)} `}
                             ${item.title}
-                        </div>
+                        </a>
                     `).join('')}
                     ${dayEvents.length > 3 ? `<div class="text-[11px] font-medium text-gray-500">+${dayEvents.length - 3} {{ __('mais') }}</div>` : ''}
                 </div>
