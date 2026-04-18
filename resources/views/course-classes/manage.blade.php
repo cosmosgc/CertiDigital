@@ -299,6 +299,7 @@ function renderStudentSearchResults(query = '') {
             const haystack = `${student.full_name || ''} ${student.email || ''}`.toLowerCase();
             return haystack.includes(normalizedQuery);
         })
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         .slice(0, 12);
 
     if (!results.length) {
