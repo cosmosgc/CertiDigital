@@ -19,7 +19,7 @@
             </div>
         </section>
 
-        <section class="grid gap-4 md:grid-cols-3">
+        <section class="grid gap-4 md:grid-cols-4">
             <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{{ __('Alunos') }}</p>
                 <p id="studentCount" class="mt-3 text-3xl font-semibold text-gray-900">0</p>
@@ -32,13 +32,18 @@
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{{ __('Carga horária') }}</p>
                 <p id="workloadHours" class="mt-3 text-3xl font-semibold text-gray-900">0h</p>
             </div>
+            <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{{ __('Presença x faltas') }}</p>
+                <p id="attendanceRatio" class="mt-3 text-2xl font-semibold text-gray-900">0% / 0%</p>
+                <p id="attendanceRatioMeta" class="mt-2 text-sm text-gray-500">0 {{ __('presenças') }} • 0 {{ __('faltas') }}</p>
+            </div>
         </section>
 
         <section class="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-gray-200">
             <div id="printSection">
             <div class="flex flex-col gap-4 border-b border-gray-200 pb-4 print:border-b print:pb-3">
                 <h2 class="text-xl font-semibold text-gray-900">{{ __('Matriz de presença') }}</h2>
-                <p class="mt-1 text-sm text-gray-500">{{ __('Cada linha representa uma sessão e cada coluna mostra a presença do aluno.') }}</p>
+                <p class="mt-1 text-sm text-gray-500">{{ __('Cada linha representa um aluno e cada coluna mostra a presença em uma sessão.') }}</p>
                 <div id="printSummary" class="grid gap-3 md:grid-cols-4">
                     <div class="rounded-2xl bg-gray-50 p-4 ring-1 ring-gray-200">
                         <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{{ __('Curso') }}</p>
@@ -118,6 +123,8 @@ const reportMeta = document.getElementById('reportMeta');
 const studentCount = document.getElementById('studentCount');
 const attendanceCount = document.getElementById('attendanceCount');
 const workloadHours = document.getElementById('workloadHours');
+const attendanceRatio = document.getElementById('attendanceRatio');
+const attendanceRatioMeta = document.getElementById('attendanceRatioMeta');
 const printCourseTitle = document.getElementById('printCourseTitle');
 const printStudentCount = document.getElementById('printStudentCount');
 const printAttendanceCount = document.getElementById('printAttendanceCount');
@@ -138,6 +145,19 @@ function formatDateInputValue(value) {
     return value ? String(value).slice(0, 10) : '';
 }
 
+function getAttendanceRatio(presentCount, totalCount) {
+    if (!totalCount) {
+        return { presentPercent: 0, absentPercent: 0 };
+    }
+
+    const presentPercent = Math.round((presentCount / totalCount) * 100);
+
+    return {
+        presentPercent,
+        absentPercent: 100 - presentPercent,
+    };
+}
+
 async function fetchReportData() {
     const res = await fetch(`{{ route("api.course-classes.show", ["course_class" => "__ID__"]) }}`.replace('__ID__', classId), {
         credentials: 'same-origin',
@@ -151,12 +171,22 @@ async function fetchReportData() {
 function renderReport(data) {
     const attendances = data.attendances || [];
     const enrollments = data.enrollments || [];
+    const totalSlots = enrollments.length * attendances.length;
+    const totalPresent = attendances.reduce((sum, attendance) => sum + (attendance.records?.length || 0), 0);
+    const totalAbsent = Math.max(totalSlots - totalPresent, 0);
+    const { presentPercent, absentPercent } = getAttendanceRatio(totalPresent, totalSlots);
+    const attendanceRecordSets = new Map(attendances.map(attendance => [
+        String(attendance.id),
+        new Set((attendance.records || []).map(record => String(record.student_id))),
+    ]));
 
     reportTitle.textContent = data.name;
     reportMeta.textContent = `${data.course?.title || ''} • ${data.instructor?.full_name || @json(__('Instrutor não definido'))}`;
     studentCount.textContent = enrollments.length;
     attendanceCount.textContent = attendances.length;
     workloadHours.textContent = formatHours(data.course?.workload_hours || 0);
+    attendanceRatio.textContent = `${presentPercent}% / ${absentPercent}%`;
+    attendanceRatioMeta.textContent = `${totalPresent} {{ __('presenças') }} • ${totalAbsent} {{ __('faltas') }}`;
     printCourseTitle.textContent = data.course?.title || '-';
     printStudentCount.textContent = String(enrollments.length);
     printAttendanceCount.textContent = String(attendances.length);
@@ -164,23 +194,29 @@ function renderReport(data) {
 
     attendanceReportHead.innerHTML = `
         <tr>
-            <th class="sticky left-0 z-10 bg-white p-3 text-left text-sm font-semibold text-gray-700 ring-1 ring-gray-200">{{ __('Sessão') }}</th>
-            ${enrollments.map(enrollment => `
-                <th class="min-w-[150px] bg-white p-3 text-left text-sm font-semibold text-gray-700 ring-1 ring-gray-200 align-top">
-                    <a href="${enrollmentShowBaseUrl.replace('__ENROLLMENT__', enrollment.id)}" class="hover:text-cyan-700">
-                        ${enrollment.student?.full_name || ''}<br>
-                        <span class="text-xs font-normal text-gray-500">${enrollment.student?.email || ''}</span>
+            <th class="sticky left-0 z-10 min-w-[220px] bg-white p-3 text-left text-sm font-semibold text-gray-700 ring-1 ring-gray-200">{{ __('Aluno') }}</th>
+            ${attendances.map(attendance => {
+                const sessionPresentCount = attendance.records?.length || 0;
+                const sessionRatio = getAttendanceRatio(sessionPresentCount, enrollments.length);
+
+                return `
+                <th class="min-w-[170px] bg-white p-3 text-left text-sm font-semibold text-gray-700 ring-1 ring-gray-200 align-top">
+                    <a href="${attendanceShowBaseUrl.replace('__ATTENDANCE__', attendance.id)}" class="hover:text-cyan-700">
+                        ${attendance.name}
                     </a>
+                    <div class="mt-1 text-xs font-normal text-gray-500">${formatDateInputValue(attendance.attendance_date)} • ${formatHours(attendance.duration_hours)}</div>
+                    <div class="mt-2 text-xs font-semibold text-emerald-700">${sessionRatio.presentPercent}% {{ __('presença') }} • ${sessionPresentCount}/${enrollments.length} {{ __('presentes') }}</div>
                 </th>
-            `).join('')}
-            <th class="bg-white p-3 text-left text-sm font-semibold text-gray-700 ring-1 ring-gray-200">{{ __('Resumo') }}</th>
+            `;
+            }).join('')}
+            <th class="bg-white p-3 text-left text-sm font-semibold text-gray-700 ring-1 ring-gray-200">{{ __('Total') }}</th>
         </tr>
     `;
 
     if (!enrollments.length) {
         attendanceReportBody.innerHTML = `
             <tr>
-                <td colspan="${enrollments.length + 2}" class="p-8 text-center text-gray-500 ring-1 ring-gray-200">
+                <td colspan="${attendances.length + 2}" class="p-8 text-center text-gray-500 ring-1 ring-gray-200">
                     {{ __('Nenhum aluno está matriculado nesta turma.') }}
                 </td>
             </tr>
@@ -188,17 +224,23 @@ function renderReport(data) {
         return;
     }
 
-    attendanceReportBody.innerHTML = attendances.map(attendance => {
-        const presentStudentIds = new Set((attendance.records || []).map(record => String(record.student_id)));
-        const attendanceShowUrl = attendanceShowBaseUrl.replace('__ATTENDANCE__', attendance.id);
+    attendanceReportBody.innerHTML = enrollments.map(enrollment => {
+        const presentCountByStudent = attendances.reduce((count, attendance) => {
+            const presentStudentIds = attendanceRecordSets.get(String(attendance.id)) || new Set();
+            return count + (presentStudentIds.has(String(enrollment.student_id)) ? 1 : 0);
+        }, 0);
+        const absentCountByStudent = Math.max(attendances.length - presentCountByStudent, 0);
+        const studentAttendanceRatio = getAttendanceRatio(presentCountByStudent, attendances.length);
+
         return `
             <tr>
                 <td class="sticky left-0 z-10 bg-white p-3 align-top ring-1 ring-gray-200">
-                    <a href="${attendanceShowUrl}" class="font-medium text-gray-900 hover:text-cyan-700">${attendance.name}</a>
-                    <div class="mt-1 text-xs text-gray-500">${formatDateInputValue(attendance.attendance_date)}</div>
-                    <div class="mt-1 text-xs text-gray-500">${formatHours(attendance.duration_hours)}</div>
+                    <a href="${enrollmentShowBaseUrl.replace('__ENROLLMENT__', enrollment.id)}" class="font-medium text-gray-900 hover:text-cyan-700">
+                        ${enrollment.student?.full_name || ''}
+                    </a>
                 </td>
-                ${enrollments.map(enrollment => {
+                ${attendances.map(attendance => {
+                    const presentStudentIds = attendanceRecordSets.get(String(attendance.id)) || new Set();
                     const present = presentStudentIds.has(String(enrollment.student_id));
 
                     return `
@@ -210,8 +252,9 @@ function renderReport(data) {
                     `;
                 }).join('')}
                 <td class="p-3 align-top ring-1 ring-gray-200">
-                    <div class="text-sm font-medium text-gray-900">${attendance.records?.length || 0} {{ __('presentes') }}</div>
-                    <div class="mt-1 text-xs text-gray-500">${formatHours(attendance.duration_hours)}</div>
+                    <div class="text-sm font-medium text-gray-900">${presentCountByStudent}/${attendances.length} {{ __('sessões presentes') }}</div>
+                    <div class="mt-1 text-xs text-gray-500">${studentAttendanceRatio.presentPercent}% {{ __('presente') }} • ${studentAttendanceRatio.absentPercent}% {{ __('ausente') }}</div>
+                    <div class="mt-1 text-xs text-gray-500">${absentCountByStudent} {{ __('faltas') }}</div>
                 </td>
             </tr>
         `;

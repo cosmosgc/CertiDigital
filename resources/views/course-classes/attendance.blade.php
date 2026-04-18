@@ -18,7 +18,7 @@
             </div>
         </section>
 
-        <section class="grid gap-4 md:grid-cols-4">
+        <section class="grid gap-4 md:grid-cols-5">
             <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{{ __('Turma') }}</p>
                 <p id="className" class="mt-3 text-lg font-semibold text-gray-900"></p>
@@ -34,6 +34,11 @@
             <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{{ __('Presentes') }}</p>
                 <p id="attendanceCount" class="mt-3 text-3xl font-semibold text-gray-900">0</p>
+            </div>
+            <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{{ __('Presença x faltas') }}</p>
+                <p id="attendancePercentage" class="mt-3 text-2xl font-semibold text-gray-900">0% / 0%</p>
+                <p id="attendancePercentageMeta" class="mt-2 text-sm text-gray-500">0 {{ __('presentes') }} • 0 {{ __('ausentes') }}</p>
             </div>
         </section>
 
@@ -124,6 +129,8 @@ const className = document.getElementById('className');
 const courseTitle = document.getElementById('courseTitle');
 const attendanceHours = document.getElementById('attendanceHours');
 const attendanceCount = document.getElementById('attendanceCount');
+const attendancePercentage = document.getElementById('attendancePercentage');
+const attendancePercentageMeta = document.getElementById('attendancePercentageMeta');
 const attendanceForm = document.getElementById('attendanceForm');
 const attendanceRoster = document.getElementById('attendanceRoster');
 const deleteAttendanceButton = document.getElementById('deleteAttendanceButton');
@@ -262,6 +269,19 @@ function getProgressPercent(hours, workload) {
     return Math.min(100, Math.round((Number(hours ?? 0) / workloadValue) * 100));
 }
 
+function getAttendanceRatio(presentCount, totalCount) {
+    if (!totalCount) {
+        return { presentPercent: 0, absentPercent: 0 };
+    }
+
+    const presentPercent = Math.round((presentCount / totalCount) * 100);
+
+    return {
+        presentPercent,
+        absentPercent: 100 - presentPercent,
+    };
+}
+
 async function fetchAttendanceData() {
     const res = await fetch(`{{ route("api.course-classes.show", ["course_class" => "__ID__"]) }}`.replace('__ID__', classId), {
         credentials: 'same-origin',
@@ -285,8 +305,6 @@ function renderAttendance() {
     attendanceName.textContent = attendanceData.name;
     attendanceMeta.textContent = `${formatDateInputValue(attendanceData.attendance_date)} • ${formatHours(attendanceData.duration_hours)}`;
     attendanceHours.textContent = formatHours(attendanceData.duration_hours);
-    attendanceCount.textContent = attendanceData.records?.length || 0;
-
     attendanceForm.name.value = attendanceData.name ?? '';
     attendanceForm.attendance_date.value = formatDateInputValue(attendanceData.attendance_date);
     attendanceForm.duration_hours.value = attendanceData.duration_hours ?? 1;
@@ -295,8 +313,17 @@ function renderAttendance() {
     const enrollments = classData?.enrollments || [];
     const attendanceRecordMap = getAttendanceRecordMap();
     const workloadHours = Number(classData?.course?.workload_hours ?? 0);
+    const presentCount = attendanceData.records?.length || 0;
+    const absentCount = Math.max(enrollments.length - presentCount, 0);
+    const { presentPercent, absentPercent } = getAttendanceRatio(presentCount, enrollments.length);
+
+    attendanceCount.textContent = presentCount;
+    attendancePercentage.textContent = `${presentPercent}% / ${absentPercent}%`;
+    attendancePercentageMeta.textContent = `${presentCount} {{ __('presentes') }} • ${absentCount} {{ __('ausentes') }}`;
 
     if (!enrollments.length) {
+        attendancePercentage.textContent = '0% / 0%';
+        attendancePercentageMeta.textContent = `0 {{ __('presentes') }} • 0 {{ __('ausentes') }}`;
         attendanceRoster.innerHTML = `
             <div class="col-span-full rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-gray-500">
                 {{ __('Nenhum aluno está matriculado nesta turma.') }}
