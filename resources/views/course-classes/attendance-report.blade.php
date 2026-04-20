@@ -44,6 +44,13 @@
             <div class="flex flex-col gap-4 border-b border-gray-200 pb-4 print:border-b print:pb-3">
                 <h2 class="text-xl font-semibold text-gray-900">{{ __('Matriz de presença') }}</h2>
                 <p class="mt-1 text-sm text-gray-500">{{ __('Cada linha representa um aluno e cada coluna mostra a presença em uma sessão.') }}</p>
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                        <label for="monthFilter" class="block text-sm font-medium text-gray-700">{{ __('Selecionar mês') }}</label>
+                        <input type="month" id="monthFilter" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" value="{{ date('Y-m') }}">
+                    </div>
+                    <button id="applyMonthFilter" type="button" class="rounded-xl bg-cyan-600 px-4 py-2 text-sm font-medium text-white">{{ __('Aplicar filtro') }}</button>
+                </div>
                 <div id="printSummary" class="grid gap-3 md:grid-cols-4">
                     <div class="rounded-2xl bg-gray-50 p-4 ring-1 ring-gray-200">
                         <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{{ __('Curso') }}</p>
@@ -133,6 +140,8 @@ const attendanceReportHead = document.getElementById('attendanceReportHead');
 const attendanceReportBody = document.getElementById('attendanceReportBody');
 const refreshButton = document.getElementById('refreshButton');
 const printButton = document.getElementById('printButton');
+const monthFilter = document.getElementById('monthFilter');
+const applyMonthFilter = document.getElementById('applyMonthFilter');
 const attendanceShowBaseUrl = @json(route('course-class-attendances.show', ['courseClass' => $courseClass, 'courseClassAttendance' => '__ATTENDANCE__']));
 const enrollmentShowBaseUrl = @json(route('course-class-enrollments.show', ['courseClass' => $courseClass, 'courseEnrollment' => '__ENROLLMENT__']));
 
@@ -158,6 +167,17 @@ function getAttendanceRatio(presentCount, totalCount) {
     };
 }
 
+function getSelectedMonth() {
+    return monthFilter.value || '{{ date('Y-m') }}';
+}
+
+function isDateInMonth(dateStr, monthStr) {
+    if (!dateStr || !monthStr) return false;
+    const date = new Date(dateStr);
+    const [year, month] = monthStr.split('-').map(Number);
+    return date.getFullYear() === year && date.getMonth() + 1 === month;
+}
+
 async function fetchReportData() {
     const res = await fetch(`{{ route("api.course-classes.show", ["course_class" => "__ID__"]) }}`.replace('__ID__', classId), {
         credentials: 'same-origin',
@@ -169,8 +189,15 @@ async function fetchReportData() {
 }
 
 function renderReport(data) {
-    const attendances = data.attendances || [];
-    const enrollments = data.enrollments || [];
+    const selectedMonth = getSelectedMonth();
+    const allAttendances = data.attendances || [];
+    const allEnrollments = data.enrollments || [];
+    const attendances = allAttendances.filter(attendance => isDateInMonth(attendance.attendance_date, selectedMonth));
+    const studentIdsWithAttendance = new Set(attendances.flatMap(attendance => (attendance.records || []).map(record => String(record.student_id))));
+    const enrollments = allEnrollments.filter(enrollment => {
+        const enrollmentStart = enrollment.start_date || enrollment.created_at;
+        return studentIdsWithAttendance.has(String(enrollment.student_id)) && isDateInMonth(enrollmentStart, selectedMonth);
+    });
     const totalSlots = enrollments.length * attendances.length;
     const totalPresent = attendances.reduce((sum, attendance) => sum + (attendance.records?.length || 0), 0);
     const totalAbsent = Math.max(totalSlots - totalPresent, 0);
@@ -262,6 +289,7 @@ function renderReport(data) {
 }
 
 refreshButton.addEventListener('click', fetchReportData);
+applyMonthFilter.addEventListener('click', fetchReportData);
 printButton.addEventListener('click', () => window.print());
 
 fetchReportData();

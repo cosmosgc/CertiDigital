@@ -16,12 +16,18 @@ class CourseEnrollment extends Model
         'progress_hours',
         'grade',
         'completed',
+        'start_date',
+        'end_date',
+        'frozen',
     ];
 
     protected $casts = [
         'progress_hours' => 'decimal:2',
         'completed' => 'boolean',
         'grade' => 'decimal:2',
+        'start_date' => 'date',
+        'end_date' => 'date',
+        'frozen' => 'boolean',
     ];
 
     /* ==========================
