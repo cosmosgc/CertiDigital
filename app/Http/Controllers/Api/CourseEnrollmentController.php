@@ -70,7 +70,15 @@ class CourseEnrollmentController extends Controller
         $data = $request->validate([
             'course_class_id' => 'nullable|exists:course_classes,id',
             'grade' => 'nullable|numeric|min:0|max:100',
+            'completed' => 'sometimes|boolean',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'frozen' => 'sometimes|boolean',
         ]);
+
+        $manualEnrollmentFields = collect($data)
+            ->only(['grade', 'completed', 'start_date', 'end_date', 'frozen'])
+            ->all();
 
         if (! empty($data['course_class_id'])) {
             $courseClass = CourseClass::findOrFail($data['course_class_id']);
@@ -103,6 +111,11 @@ class CourseEnrollmentController extends Controller
                 'progress_hours' => 0,
                 'completed' => false,
             ]);
+        }
+
+        if ($manualEnrollmentFields) {
+            $courseEnrollment->update($manualEnrollmentFields);
+            $courseEnrollment = $courseEnrollment->fresh();
         }
 
         return response()->json($courseEnrollment->load(['student', 'course', 'courseClass']), Response::HTTP_OK);

@@ -51,6 +51,48 @@
             </div>
         </section>
 
+        @if(auth()->user()?->hasRole('admin'))
+            <section class="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-orange-200">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                        <h2 class="text-xl font-semibold text-gray-900">{{ __('Editar matrícula') }}</h2>
+                        <p class="mt-1 text-sm text-gray-500">{{ __('Campos administrativos da matrícula deste aluno.') }}</p>
+                    </div>
+                    <div id="adminEnrollmentStatus" class="hidden rounded-2xl px-4 py-3 text-sm"></div>
+                </div>
+
+                <form id="adminEnrollmentForm" class="mt-6 grid gap-4 lg:grid-cols-5">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">{{ __('Nota') }}</label>
+                        <input type="number" min="0" max="100" step="0.01" name="grade" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">{{ __('Data de início') }}</label>
+                        <input type="date" name="start_date" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">{{ __('Data de término') }}</label>
+                        <input type="date" name="end_date" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm">
+                    </div>
+                    <div class="grid content-end gap-3">
+                        <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+                            <input type="checkbox" name="completed" class="rounded border-gray-300 text-orange-600 shadow-sm focus:ring-orange-500">
+                            {{ __('Concluído') }}
+                        </label>
+                        <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+                            <input type="checkbox" name="frozen" class="rounded border-gray-300 text-orange-600 shadow-sm focus:ring-orange-500">
+                            {{ __('Congelado') }}
+                        </label>
+                    </div>
+                    <div class="flex items-end">
+                        <button type="submit" class="w-full rounded-xl bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm">
+                            {{ __('Salvar matrícula') }}
+                        </button>
+                    </div>
+                </form>
+            </section>
+        @endif
+
         <section id="printSection" class="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-gray-200">
             <div class="flex flex-col gap-4 border-b border-gray-200 pb-4">
                 <div>
@@ -121,6 +163,9 @@
 </style>
 
 <script>
+const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+const currentUserId = @json(auth()->id());
+const isAdmin = @json(auth()->user()?->hasRole('admin') ?? false);
 const classId = @json($courseClass->id);
 const enrollmentId = @json($courseEnrollment->id);
 const studentName = document.getElementById('studentName');
@@ -139,8 +184,11 @@ const printAttendanceCount = document.getElementById('printAttendanceCount');
 const printWorkloadHours = document.getElementById('printWorkloadHours');
 const studentAttendanceReportHead = document.getElementById('studentAttendanceReportHead');
 const studentAttendanceReportBody = document.getElementById('studentAttendanceReportBody');
+const adminEnrollmentForm = document.getElementById('adminEnrollmentForm');
+const adminEnrollmentStatus = document.getElementById('adminEnrollmentStatus');
 const classShowUrl = @json(route('course-classes.show', $courseClass));
 const attendanceShowBaseUrl = @json(route('course-class-attendances.show', ['courseClass' => $courseClass, 'courseClassAttendance' => '__ATTENDANCE__']));
+const enrollmentUpdateUrl = @json(route('api.course-enrollments.update', ['course_enrollment' => $courseEnrollment]));
 
 function formatHours(value) {
     const numeric = Number(value ?? 0);
@@ -157,6 +205,23 @@ function getProgressPercent(hours, workload) {
     if (!workloadValue) return 0;
 
     return Math.min(100, Math.round((Number(hours ?? 0) / workloadValue) * 100));
+}
+
+function showAdminEnrollmentStatus(message, success = true) {
+    if (!adminEnrollmentStatus) return;
+
+    adminEnrollmentStatus.className = `rounded-2xl px-4 py-3 text-sm ${success ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100' : 'bg-rose-50 text-rose-800 ring-1 ring-rose-100'}`;
+    adminEnrollmentStatus.textContent = message;
+}
+
+function fillAdminEnrollmentForm(enrollment) {
+    if (!adminEnrollmentForm) return;
+
+    adminEnrollmentForm.grade.value = enrollment.grade ?? '';
+    adminEnrollmentForm.start_date.value = formatDateInputValue(enrollment.start_date);
+    adminEnrollmentForm.end_date.value = formatDateInputValue(enrollment.end_date);
+    adminEnrollmentForm.completed.checked = Boolean(enrollment.completed);
+    adminEnrollmentForm.frozen.checked = Boolean(enrollment.frozen);
 }
 
 async function fetchEnrollmentData() {
@@ -193,6 +258,7 @@ function renderEnrollment(data) {
     courseTitle.textContent = data.course?.title || '';
     progressHours.textContent = formatHours(progress);
     attendanceCount.textContent = attendedSessions;
+    fillAdminEnrollmentForm(enrollment);
     printCourseTitle.textContent = data.course?.title || '-';
     printStudentName.textContent = enrollment.student?.full_name || '-';
     printAttendanceCount.textContent = `${attendedSessions} {{ __('de') }} ${(data.attendances || []).length}`;
@@ -291,6 +357,39 @@ function renderEnrollment(data) {
 
 refreshButton.addEventListener('click', fetchEnrollmentData);
 printButton.addEventListener('click', () => window.print());
+
+if (adminEnrollmentForm && isAdmin) {
+    adminEnrollmentForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const res = await fetch(enrollmentUpdateUrl, {
+            method: 'PUT',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': token,
+                'X-User-Id': currentUserId,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                grade: adminEnrollmentForm.grade.value || null,
+                completed: adminEnrollmentForm.completed.checked,
+                start_date: adminEnrollmentForm.start_date.value || null,
+                end_date: adminEnrollmentForm.end_date.value || null,
+                frozen: adminEnrollmentForm.frozen.checked,
+            })
+        });
+
+        if (res.ok) {
+            showAdminEnrollmentStatus(@json(__('Matrícula atualizada com sucesso.')));
+            await fetchEnrollmentData();
+            return;
+        }
+
+        const error = await res.json().catch(() => null);
+        showAdminEnrollmentStatus(error?.message || @json(__('Erro ao atualizar matrícula.')), false);
+    });
+}
 
 fetchEnrollmentData();
 </script>

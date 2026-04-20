@@ -171,11 +171,36 @@ function getSelectedMonth() {
     return monthFilter.value || '{{ date('Y-m') }}';
 }
 
-function isDateInMonth(dateStr, monthStr) {
-    if (!dateStr || !monthStr) return false;
-    const date = new Date(dateStr);
-    const [year, month] = monthStr.split('-').map(Number);
-    return date.getFullYear() === year && date.getMonth() + 1 === month;
+function normalizeDateValue(value) {
+    return value ? String(value).slice(0, 10) : '';
+}
+
+function getMonthRange(monthStr) {
+    const [year, month] = String(monthStr || '').split('-').map(Number);
+
+    if (!year || !month) {
+        return { start: '', end: '' };
+    }
+
+    const endDay = new Date(year, month, 0).getDate();
+
+    return {
+        start: `${year}-${String(month).padStart(2, '0')}-01`,
+        end: `${year}-${String(month).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`,
+    };
+}
+
+function isDateInRange(dateStr, startDate, endDate) {
+    const date = normalizeDateValue(dateStr);
+
+    return Boolean(date && date >= startDate && date <= endDate);
+}
+
+function isEnrollmentActiveInRange(enrollment, startDate, endDate) {
+    const enrollmentStart = normalizeDateValue(enrollment.start_date);
+    const enrollmentEnd = normalizeDateValue(enrollment.end_date);
+
+    return (!enrollmentStart || enrollmentStart <= endDate) && (!enrollmentEnd || enrollmentEnd >= startDate);
 }
 
 async function fetchReportData() {
@@ -190,21 +215,23 @@ async function fetchReportData() {
 
 function renderReport(data) {
     const selectedMonth = getSelectedMonth();
+    const { start: monthStart, end: monthEnd } = getMonthRange(selectedMonth);
     const allAttendances = data.attendances || [];
     const allEnrollments = data.enrollments || [];
-    const attendances = allAttendances.filter(attendance => isDateInMonth(attendance.attendance_date, selectedMonth));
-    const studentIdsWithAttendance = new Set(attendances.flatMap(attendance => (attendance.records || []).map(record => String(record.student_id))));
-    const enrollments = allEnrollments.filter(enrollment => {
-        const enrollmentStart = enrollment.start_date || enrollment.created_at;
-        return studentIdsWithAttendance.has(String(enrollment.student_id)) && isDateInMonth(enrollmentStart, selectedMonth);
-    });
+    const attendances = allAttendances.filter(attendance => isDateInRange(attendance.attendance_date, monthStart, monthEnd));
+    const enrollments = allEnrollments.filter(enrollment => isEnrollmentActiveInRange(enrollment, monthStart, monthEnd));
+    const visibleStudentIds = new Set(enrollments.map(enrollment => String(enrollment.student_id)));
     const totalSlots = enrollments.length * attendances.length;
-    const totalPresent = attendances.reduce((sum, attendance) => sum + (attendance.records?.length || 0), 0);
+    const totalPresent = attendances.reduce((sum, attendance) => {
+        return sum + (attendance.records || []).filter(record => visibleStudentIds.has(String(record.student_id))).length;
+    }, 0);
     const totalAbsent = Math.max(totalSlots - totalPresent, 0);
     const { presentPercent, absentPercent } = getAttendanceRatio(totalPresent, totalSlots);
     const attendanceRecordSets = new Map(attendances.map(attendance => [
         String(attendance.id),
-        new Set((attendance.records || []).map(record => String(record.student_id))),
+        new Set((attendance.records || [])
+            .filter(record => visibleStudentIds.has(String(record.student_id)))
+            .map(record => String(record.student_id))),
     ]));
 
     reportTitle.textContent = data.name;
@@ -223,7 +250,7 @@ function renderReport(data) {
         <tr>
             <th class="sticky left-0 z-10 min-w-[220px] bg-white p-3 text-left text-sm font-semibold text-gray-700 ring-1 ring-gray-200">{{ __('Aluno') }}</th>
             ${attendances.map(attendance => {
-                const sessionPresentCount = attendance.records?.length || 0;
+                const sessionPresentCount = attendanceRecordSets.get(String(attendance.id))?.size || 0;
                 const sessionRatio = getAttendanceRatio(sessionPresentCount, enrollments.length);
 
                 return `
@@ -244,7 +271,7 @@ function renderReport(data) {
         attendanceReportBody.innerHTML = `
             <tr>
                 <td colspan="${attendances.length + 2}" class="p-8 text-center text-gray-500 ring-1 ring-gray-200">
-                    {{ __('Nenhum aluno está matriculado nesta turma.') }}
+                    {{ __('Nenhum aluno ativo para o mês selecionado.') }}
                 </td>
             </tr>
         `;

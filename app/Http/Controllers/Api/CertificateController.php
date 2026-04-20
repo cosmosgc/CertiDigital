@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Certificate;
+use App\Models\CourseEnrollment;
 use App\Models\VerificationLog;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -48,8 +49,33 @@ class CertificateController extends Controller
         ]);
 
         $certificate = Certificate::create($data);
+        $this->syncEnrollmentEndDate($certificate);
 
         return response()->json($certificate->load(['student', 'course', 'instructor']), Response::HTTP_CREATED);
+    }
+
+    private function syncEnrollmentEndDate(Certificate $certificate): void
+    {
+        if (! $certificate->end_date) {
+            return;
+        }
+
+        $query = CourseEnrollment::where('student_id', $certificate->student_id)
+            ->where('course_id', $certificate->course_id);
+
+        $enrollment = (clone $query)
+            ->whereNull('end_date')
+            ->latest('id')
+            ->first() ?? $query->latest('id')->first();
+
+        if (! $enrollment) {
+            return;
+        }
+
+        $enrollment->update([
+            'end_date' => $certificate->end_date,
+            'completed' => true,
+        ]);
     }
 
     public function show(Certificate $certificate)
