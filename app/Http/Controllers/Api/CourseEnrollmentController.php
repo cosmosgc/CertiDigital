@@ -12,9 +12,7 @@ use Illuminate\Http\Response;
 
 class CourseEnrollmentController extends Controller
 {
-    public function __construct(private readonly CourseEnrollmentProgressService $progressService)
-    {
-    }
+    public function __construct(private readonly CourseEnrollmentProgressService $progressService) {}
 
     public function index()
     {
@@ -30,7 +28,14 @@ class CourseEnrollmentController extends Controller
             'course_id' => 'required|exists:courses,id',
             'course_class_id' => 'nullable|exists:course_classes,id',
             'grade' => 'nullable|numeric|min:0|max:100',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'frozen' => 'sometimes|boolean',
         ]);
+
+        if (empty($data['start_date'])) {
+            $data['start_date'] = now();
+        }
 
         if (! empty($data['course_class_id'])) {
             $courseClass = CourseClass::findOrFail($data['course_class_id']);
@@ -48,7 +53,6 @@ class CourseEnrollmentController extends Controller
         $enrollment = CourseEnrollment::create([
             ...$data,
             'progress_hours' => 0,
-            'completed' => false,
         ]);
 
         if ($enrollment->course_class_id) {
