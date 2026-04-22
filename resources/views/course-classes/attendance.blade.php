@@ -18,6 +18,13 @@
             </div>
         </section>
 
+        @if(request()->boolean('guest'))
+            <section class="rounded-[24px] border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+                <strong>{{ __('Modo somente leitura.') }}</strong>
+                {{ __('Esta sessão foi aberta como convidado; alterações de presença, edição, exclusão e anotações estão desativadas.') }}
+            </section>
+        @endif
+
         <section class="grid gap-4 md:grid-cols-5">
             <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{{ __('Turma') }}</p>
@@ -43,7 +50,7 @@
         </section>
 
         <section class="grid gap-6 lg:grid-cols-[1fr,1fr]">
-            <div class="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-gray-200">
+            <div class="{{ request()->boolean('guest') ? 'hidden' : '' }} rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-gray-200">
                 <h2 class="text-xl font-semibold text-gray-900">{{ __('Editar sessão') }}</h2>
                 <p class="mt-1 text-sm text-gray-500">{{ __('Atualize nome, data e duração da sessão. O progresso dos alunos será recalculado automaticamente.') }}</p>
 
@@ -71,13 +78,15 @@
 
             <div class="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-gray-200">
                 <h2 class="text-xl font-semibold text-gray-900">{{ __('Gerenciar presença') }}</h2>
-                <p class="mt-1 text-sm text-gray-500">{{ __('Clique em cada aluno para alternar entre presente e ausente nesta sessão.') }}</p>
+                <p class="mt-1 text-sm text-gray-500">
+                    {{ request()->boolean('guest') ? __('Visualização somente leitura da presença nesta sessão.') : __('Clique em cada aluno para alternar entre presente e ausente nesta sessão.') }}
+                </p>
 
                 <div id="attendanceRoster" class="mt-6 grid gap-3 sm:grid-cols-2"></div>
             </div>
         </section>
 
-        <section class="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-gray-200">
+        <section class="{{ request()->boolean('guest') ? 'hidden' : '' }} rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-gray-200">
             <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                     <h2 class="text-xl font-semibold text-gray-900">{{ __('Nova anotação de aluno') }}</h2>
@@ -121,6 +130,7 @@
 <script>
 const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 const currentUserId = @json(auth()->id());
+const isGuestMode = @json(request()->boolean('guest'));
 const classId = @json($courseClass->id);
 const attendanceId = @json($courseClassAttendance->id);
 const attendanceName = document.getElementById('attendanceName');
@@ -340,7 +350,7 @@ function renderAttendance() {
 
         return `
             <div
-                class="attendanceToggle relative w-full rounded-2xl border p-4 pr-24 text-left transition ${present ? 'border-emerald-300 bg-emerald-50 hover:bg-emerald-100/70' : 'border-gray-200 bg-white hover:bg-gray-50'}"
+                class="attendanceToggle relative w-full rounded-2xl border p-4 pr-24 text-left transition ${isGuestMode ? 'cursor-default' : ''} ${present ? 'border-emerald-300 bg-emerald-50 hover:bg-emerald-100/70' : 'border-gray-200 bg-white hover:bg-gray-50'}"
                 data-student-id="${enrollment.student_id}"
                 data-record-id="${record?.id ?? ''}"
             >
@@ -357,7 +367,7 @@ function renderAttendance() {
                     <span class="text-gray-500">{{ __('Progresso atual') }}</span>
                     <span class="font-medium text-gray-900">${formatHours(progressHours)} (${progressPercent}%)</span>
                 </div>
-                <div class="mt-4 flex justify-end">
+                <div class="${isGuestMode ? 'hidden' : ''} mt-4 flex justify-end">
                     ${present ? `
                         <button
                             type="button"
@@ -378,6 +388,7 @@ function renderAttendance() {
 
 attendanceForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (isGuestMode) return;
 
     const res = await fetch(`{{ route("api.course-class-attendances.update", ["course_class_attendance" => "__ID__"]) }}`.replace('__ID__', attendanceId), {
         method: 'PUT',
@@ -405,6 +416,8 @@ attendanceForm.addEventListener('submit', async (e) => {
 });
 
 attendanceRoster.addEventListener('click', async (e) => {
+    if (isGuestMode) return;
+
     const annotationButton = e.target.closest('.openAnnotationButton');
     if (annotationButton) {
         e.stopPropagation();
@@ -458,6 +471,8 @@ attendanceRoster.addEventListener('click', async (e) => {
 });
 
 deleteAttendanceButton.addEventListener('click', async () => {
+    if (isGuestMode) return;
+
     if (!confirm(@json(__('Excluir esta sessão de presença?')))) return;
 
     const res = await fetch(`{{ route("api.course-class-attendances.destroy", ["course_class_attendance" => "__ID__"]) }}`.replace('__ID__', attendanceId), {
@@ -482,6 +497,7 @@ annotationStudent.addEventListener('change', updateAnnotationContext);
 clearAnnotationButton.addEventListener('click', resetAnnotationForm);
 annotationForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (isGuestMode) return;
 
     const selectedOption = annotationStudent.selectedOptions[0];
     const recordId = selectedOption?.dataset.recordId;

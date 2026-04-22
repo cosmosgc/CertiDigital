@@ -11,6 +11,9 @@
                 </p>
             </div>
             <div class="flex flex-wrap gap-3 text-sm">
+                <a href="{{ route('dashboard.live-classes') }}" class="inline-flex items-center rounded-2xl border border-cyan-300/30 bg-white/10 px-4 py-3 font-semibold text-cyan-100 backdrop-blur transition hover:bg-white/15">
+                    {{ __('Aulas ao vivo') }}
+                </a>
                 <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-slate-200 backdrop-blur">
                     <span class="block text-xs uppercase tracking-[0.24em] text-slate-400">{{ __('Matrículas concluídas') }}</span>
                     <span class="mt-1 block text-2xl font-semibold text-white">{{ $completionRate }}%</span>

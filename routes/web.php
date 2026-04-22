@@ -16,6 +16,10 @@ Route::get('/', function () {
 Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
+
+Route::get('/dashboard/live-classes', [\App\Http\Controllers\DashboardController::class, 'liveClasses'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard.live-classes');
     
 Route::get('/schedule-events', [ScheduleEventController::class, 'index'])->name('schedule-events.index');
 
