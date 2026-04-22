@@ -245,7 +245,11 @@ async function fetchAllPages(url) {
     while (nextUrl) {
         const res = await fetch(nextUrl, {
             credentials: 'same-origin',
-            headers: { 'Accept': 'application/json' }
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': token,
+                'X-User-Id': currentUserId
+            }
         });
         const data = await res.json();
         items.push(...(data.data || []));
@@ -348,12 +352,30 @@ async function loadEnrollments() {
 }
 
 async function fetchClassData() {
-    const res = await fetch(`{{ route("api.course-classes.show", ["course_class" => "__ID__"]) }}`.replace('__ID__', classId), {
+    let url = `{{ route("api.course-classes.show", ["course_class" => "__ID__"]) }}`.replace('__ID__', classId);
+    // Add timestamp to force fresh data from server
+    url += '?t=' + Date.now();
+    
+    const res = await fetch(url, {
         credentials: 'same-origin',
-        headers: { 'Accept': 'application/json' }
+        headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': token,
+            'X-User-Id': currentUserId,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        }
     });
+    
+    if (!res.ok) {
+        console.error('Failed to fetch class data:', res.status);
+        return;
+    }
 
-    classData = await res.json();
+    const data = await res.json();
+    console.log('Updated classData from API:', data);
+    classData = data;
 
     if (!selectedAttendanceId && classData.attendances?.length) {
         selectedAttendanceId = classData.attendances[0].id;
@@ -378,7 +400,7 @@ function renderClassData() {
     workloadHours.textContent = formatHours(classData.course?.workload_hours || 0);
     classDescription.textContent = classData.description || @json(__('Sem descrição cadastrada.'));
     studentCount.textContent = classData.enrollments?.length || 0;
-
+    console.log(classData.enrollments?.length || 0, 'enrollments loaded for class');
     studentsTableBody.innerHTML = '';
 
     (classData.enrollments || []).forEach(enrollment => {
@@ -413,11 +435,13 @@ function renderClassData() {
         studentsTableBody.appendChild(tr);
     });
 
-    if (studentsTable) {
-        studentsTable.destroy();
-    }
+    // if (studentsTable && typeof studentsTable.destroy === 'function') {
+    //     studentsTable.destroy();
+    //     studentsTable = null;
+    // }
 
     studentsTable = new DataTable('#classStudentsTable');
+    console.log('Class data rendered and table initialized');
 
     renderStudentSearchResults(studentSearchInput.value);
     renderAttendanceList();
@@ -561,9 +585,13 @@ studentsTableBody.addEventListener('click', async (e) => {
         });
 
         if (res.ok) {
+            
+
             resetEnrollmentForm();
             await loadEnrollments();
             await fetchClassData();
+
+            
         } else {
             alert(@json(__('Erro ao remover matrícula')));
         }
@@ -697,6 +725,8 @@ enrollmentForm.addEventListener('submit', async (e) => {
         resetEnrollmentForm();
         await loadEnrollments();
         await fetchClassData();
+
+        
     } else {
         const error = await res.json().catch(() => null);
         alert(error?.message || @json(__('Erro ao salvar matrícula')));
