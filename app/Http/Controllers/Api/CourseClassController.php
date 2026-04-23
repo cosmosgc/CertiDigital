@@ -10,6 +10,9 @@ use Illuminate\Validation\Rule;
 
 class CourseClassController extends Controller
 {
+    /**
+     * Display a listing of course classes with related data.
+     */
     public function index()
     {
         $classes = CourseClass::with(['course', 'instructor', 'students', 'attendances.records'])->paginate(15);
@@ -17,6 +20,9 @@ class CourseClassController extends Controller
         return response()->json($classes, Response::HTTP_OK);
     }
 
+    /**
+     * Store a newly created course class in storage.
+     */
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -41,6 +47,9 @@ class CourseClassController extends Controller
         );
     }
 
+    /**
+     * Display the specified course class details with related data.
+     */
     public function show(CourseClass $courseClass)
     {
         return response()->json(
@@ -55,6 +64,9 @@ class CourseClassController extends Controller
         );
     }
 
+    /**
+     * Update the specified course class in storage.
+     */
     public function update(Request $request, CourseClass $courseClass)
     {
         $data = $request->validate([
@@ -83,6 +95,9 @@ class CourseClassController extends Controller
         );
     }
 
+    /**
+     * Remove the specified course class from storage.
+     */
     public function destroy(CourseClass $courseClass)
     {
         $courseClass->delete();

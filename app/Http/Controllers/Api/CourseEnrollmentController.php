@@ -13,7 +13,9 @@ use Illuminate\Http\Response;
 class CourseEnrollmentController extends Controller
 {
     public function __construct(private readonly CourseEnrollmentProgressService $progressService) {}
-
+    /**
+     * Display a listing of course enrollments with related data.
+     */
     public function index()
     {
         $enrollments = CourseEnrollment::with(['student', 'course', 'courseClass'])->paginate(20);
@@ -21,6 +23,9 @@ class CourseEnrollmentController extends Controller
         return response()->json($enrollments, Response::HTTP_OK);
     }
 
+    /**
+     * Store a newly created course enrollment in storage.
+     */
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -62,11 +67,17 @@ class CourseEnrollmentController extends Controller
         return response()->json($enrollment->load(['student', 'course', 'courseClass']), Response::HTTP_CREATED);
     }
 
+    /**
+     * Display the specified course enrollment details with related data.
+     */
     public function show(CourseEnrollment $courseEnrollment)
     {
         return response()->json($courseEnrollment->load(['student', 'course', 'courseClass']), Response::HTTP_OK);
     }
 
+    /**
+     * Update the specified course enrollment in storage.
+     */
     public function update(Request $request, CourseEnrollment $courseEnrollment)
     {
         $originalClassId = $courseEnrollment->course_class_id;
@@ -125,6 +136,9 @@ class CourseEnrollmentController extends Controller
         return response()->json($courseEnrollment->load(['student', 'course', 'courseClass']), Response::HTTP_OK);
     }
 
+    /**
+     * Remove the specified course enrollment from storage.
+     */
     public function destroy(CourseEnrollment $courseEnrollment)
     {
         if ($courseEnrollment->course_class_id) {

@@ -17,6 +17,9 @@ class CourseClassAttendanceController extends Controller
     {
     }
 
+    /**
+     * Store a newly created course class attendance in storage.
+     */
     public function store(Request $request, CourseClass $courseClass)
     {
         $data = $request->validate([
@@ -59,6 +62,9 @@ class CourseClassAttendanceController extends Controller
         return response()->json($attendance, Response::HTTP_CREATED);
     }
 
+    /**
+     * Update the specified course class attendance in storage.
+     */
     public function update(Request $request, CourseClassAttendance $courseClassAttendance)
     {
         $data = $request->validate([
@@ -78,6 +84,9 @@ class CourseClassAttendanceController extends Controller
         return response()->json($courseClassAttendance->load('records.student'), Response::HTTP_OK);
     }
 
+    /**
+     * Remove the specified course class attendance from storage and refresh enrollments.
+     */
     public function destroy(CourseClassAttendance $courseClassAttendance)
     {
         $courseClass = $courseClassAttendance->courseClass;
@@ -88,6 +97,9 @@ class CourseClassAttendanceController extends Controller
         return response()->json(null, Response::HTTP_NO_CONTENT);
     }
 
+    /**
+     * Refresh enrollment progress for all enrollments in the course class.
+     */
     private function refreshClassEnrollments(CourseClass $courseClass): void
     {
         $courseClass->loadMissing('enrollments.course');

@@ -12,6 +12,9 @@ use Illuminate\Support\Carbon;
 
 class CertificateController extends Controller
 {
+    /**
+     * Display a listing of certificates with optional search filtering.
+     */
     public function index(Request $request)
     {
         $q = $request->query('q');
@@ -33,6 +36,9 @@ class CertificateController extends Controller
         return response()->json($certificates, Response::HTTP_OK);
     }
 
+    /**
+     * Store a newly created certificate in storage.
+     */
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -78,11 +84,17 @@ class CertificateController extends Controller
         ]);
     }
 
+    /**
+     * Display the specified certificate details with related data including verification logs.
+     */
     public function show(Certificate $certificate)
     {
         return response()->json($certificate->load(['student', 'course', 'instructor', 'verificationLogs']), Response::HTTP_OK);
     }
 
+    /**
+     * Update the specified certificate in storage.
+     */
     public function update(Request $request, Certificate $certificate)
     {
         $data = $request->validate([
@@ -102,6 +114,9 @@ class CertificateController extends Controller
         return response()->json($certificate->load(['student', 'course', 'instructor']), Response::HTTP_OK);
     }
 
+    /**
+     * Remove the specified certificate from storage.
+     */
     public function destroy(Certificate $certificate)
     {
         $certificate->delete();
@@ -109,7 +124,9 @@ class CertificateController extends Controller
         return response()->json(null, Response::HTTP_NO_CONTENT);
     }
 
-    // Verify certificate by its code and record a verification log
+    /**
+     * Verify a certificate by its code and record a verification log.
+     */
     public function verify(Request $request, $code)
     {
         $certificate = Certificate::where('certificate_code', $code)->first();
@@ -131,6 +148,9 @@ class CertificateController extends Controller
         ], Response::HTTP_OK);
     }
 
+    /**
+     * Get certificate details by code with related data (student, course, instructor, verification logs).
+     */
     public function getByCode($code)
     {   
         $certificate = Certificate::where('certificate_code', $code)->with(['student', 'course', 'instructor', 'verificationLogs'])->first();

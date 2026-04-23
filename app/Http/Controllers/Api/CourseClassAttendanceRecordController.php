@@ -16,6 +16,9 @@ class CourseClassAttendanceRecordController extends Controller
     {
     }
 
+    /**
+     * Store a newly created course class attendance record in storage.
+     */
     public function store(Request $request, CourseClassAttendance $courseClassAttendance)
     {
         $data = $request->validate([
@@ -45,6 +48,9 @@ class CourseClassAttendanceRecordController extends Controller
         return response()->json($record->load('student'), Response::HTTP_CREATED);
     }
 
+    /**
+     * Remove the specified course class attendance record from storage and refresh enrollment progress.
+     */
     public function destroy(CourseClassAttendanceRecord $courseClassAttendanceRecord)
     {
         $enrollment = CourseEnrollment::where('course_class_id', $courseClassAttendanceRecord->attendance->course_class_id)

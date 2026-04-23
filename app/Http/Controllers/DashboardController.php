@@ -17,7 +17,14 @@ use Illuminate\Http\Request;
 class DashboardController extends Controller
 {
     /**
-     * Show the application dashboard for managers.
+     * Display a listing of dashboard statistics and data.
+     * Returns view with comprehensive metrics including:
+     * - User, certificate, course, student counts
+     * - Enrollment completion rates
+     * - Attendance hours and sessions
+     * - Monthly growth charts
+     * - Recent certificates, events, and annotations
+     * - Top performing courses by enrollment
      */
     public function index(Request $request)
     {
@@ -152,6 +159,14 @@ class DashboardController extends Controller
         ));
     }
 
+    /**
+     * Display a listing of live classes and schedule events for the current week.
+     * Returns view with:
+     * - Live class cards currently in session
+     * - Weekly planner grid with recurring weekly classes
+     * - Time slots and day headers
+     * - Attendance metadata for each class
+     */
     public function liveClasses(Request $request)
     {
         $now = now();
@@ -226,6 +241,10 @@ class DashboardController extends Controller
         ));
     }
 
+    /**
+     * Get data for an event card display (live class cards).
+     * Includes time, title, course name, instructor, location, and attendance info.
+     */
     private function eventCardData(ScheduleEvent $event): array
     {
         $courseClass = $event->courseClass;
@@ -242,6 +261,10 @@ class DashboardController extends Controller
         ];
     }
 
+    /**
+     * Get data for a planner grid event cell (weekly schedule view).
+     * Includes title, course name, and attendance information.
+     */
     private function plannerEventData(ScheduleEvent $event): array
     {
         $courseClass = $event->courseClass;
@@ -253,6 +276,10 @@ class DashboardController extends Controller
         ];
     }
 
+    /**
+     * Get attendance metadata for a course class.
+     * Returns label, tag, styling classes, and link to attendance details.
+     */
     private function attendanceMeta(?CourseClass $courseClass): array
     {
         $attendance = $courseClass?->attendances
@@ -286,6 +313,10 @@ class DashboardController extends Controller
         ];
     }
 
+    /**
+     * Check if a scheduled event occurs on a specific date (handles recurring events).
+     * For weekly recurring events, checks against the entire recurrence period.
+     */
     private function scheduleEventOccursOnDate(ScheduleEvent $event, Carbon $date): bool
     {
         if (! $event->start_date) {
@@ -310,6 +341,10 @@ class DashboardController extends Controller
         return $dateOnly >= $startDate && (! $endDate || $dateOnly <= $endDate);
     }
 
+    /**
+     * Check if a scheduled event is currently live at the given moment.
+     * Considers all-day events, time-based events with start/end times.
+     */
     private function scheduleEventIsLiveNow(ScheduleEvent $event, Carbon $now): bool
     {
         if (! $this->scheduleEventOccursOnDate($event, $now)) {
@@ -332,6 +367,9 @@ class DashboardController extends Controller
         return $now->between($start, $end, true);
     }
 
+    /**
+     * Format an event time for display as a label (e.g., "09:00 - 10:30" or "Dia inteiro").
+     */
     private function eventTimeLabel(ScheduleEvent $event): string
     {
         if ($event->is_all_day) {
@@ -344,6 +382,10 @@ class DashboardController extends Controller
         return $end ? "{$start} - {$end}" : $start;
     }
 
+    /**
+     * Get a sortable time value for an event (for ordering in the planner).
+     * All-day events sort first, then by start time.
+     */
     private function eventTimeSortValue(ScheduleEvent $event): string
     {
         return $event->is_all_day ? '00:00' : ($event->start_time ? substr((string) $event->start_time, 0, 5) : '23:59');

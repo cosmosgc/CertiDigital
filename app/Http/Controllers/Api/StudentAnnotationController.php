@@ -11,6 +11,9 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 
 class StudentAnnotationController extends Controller
 {
+    /**
+     * Display a listing of student annotations with optional filtering.
+     */
     public function index(Request $request)
     {
         $request->validate([
@@ -32,6 +35,9 @@ class StudentAnnotationController extends Controller
         return response()->json($annotations, Response::HTTP_OK);
     }
 
+    /**
+     * Store a newly created student annotation in storage.
+     */
     public function store(Request $request)
     {
         $data = $this->validateData($request);
@@ -41,11 +47,17 @@ class StudentAnnotationController extends Controller
         return response()->json($this->loadRelations($annotation), Response::HTTP_CREATED);
     }
 
+    /**
+     * Display the specified student annotation details with related data.
+     */
     public function show(StudentAnnotation $studentAnnotation)
     {
         return response()->json($this->loadRelations($studentAnnotation), Response::HTTP_OK);
     }
 
+    /**
+     * Update the specified student annotation in storage.
+     */
     public function update(Request $request, StudentAnnotation $studentAnnotation)
     {
         $data = $this->validateData($request, true, $studentAnnotation);
@@ -55,6 +67,9 @@ class StudentAnnotationController extends Controller
         return response()->json($this->loadRelations($studentAnnotation), Response::HTTP_OK);
     }
 
+    /**
+     * Remove the specified student annotation from storage.
+     */
     public function destroy(StudentAnnotation $studentAnnotation)
     {
         $studentAnnotation->delete();
@@ -62,6 +77,10 @@ class StudentAnnotationController extends Controller
         return response()->json(null, Response::HTTP_NO_CONTENT);
     }
 
+    /**
+     * Validate student annotation data from request.
+     * Handles both full and partial updates with cross-field validation for attendance records.
+     */
     private function validateData(Request $request, bool $partial = false, ?StudentAnnotation $studentAnnotation = null): array
     {
         $required = $partial ? ['sometimes', 'required'] : ['required'];
@@ -112,6 +131,9 @@ class StudentAnnotationController extends Controller
         return $data;
     }
 
+    /**
+     * Load related data for a student annotation model.
+     */
     private function loadRelations(StudentAnnotation $studentAnnotation): StudentAnnotation
     {
         return $studentAnnotation->load([

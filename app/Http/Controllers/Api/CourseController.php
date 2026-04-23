@@ -9,6 +9,9 @@ use Illuminate\Http\Response;
 
 class CourseController extends Controller
 {
+    /**
+     * Display a listing of courses with related data (classes, students, certificates).
+     */
     public function index()
     {
         $courses = Course::with(['classes.students', 'students', 'certificates'])->paginate(15);
@@ -16,6 +19,9 @@ class CourseController extends Controller
         return response()->json($courses, Response::HTTP_OK);
     }
 
+    /**
+     * Store a newly created course in storage.
+     */
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -30,6 +36,9 @@ class CourseController extends Controller
         return response()->json($course, Response::HTTP_CREATED);
     }
 
+    /**
+     * Display the specified course details with related data.
+     */
     public function show(Course $course)
     {
         $course->load(['classes.students', 'students', 'certificates']);
@@ -37,6 +46,9 @@ class CourseController extends Controller
         return response()->json($course, Response::HTTP_OK);
     }
 
+    /**
+     * Update the specified course in storage.
+     */
     public function update(Request $request, Course $course)
     {
         $data = $request->validate([
@@ -51,6 +63,9 @@ class CourseController extends Controller
         return response()->json($course, Response::HTTP_OK);
     }
 
+    /**
+     * Remove the specified course from storage.
+     */
     public function destroy(Course $course)
     {
         $course->delete();

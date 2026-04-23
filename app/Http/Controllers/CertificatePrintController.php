@@ -8,6 +8,9 @@ use Illuminate\Http\Request;
 
 class CertificatePrintController extends Controller
 {
+    /**
+     * Display the certificate print page with settings.
+     */
     public function show(Request $request, Certificate $certificate)
     {
         // Load relations for display

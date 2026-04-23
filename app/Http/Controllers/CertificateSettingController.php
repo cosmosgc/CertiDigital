@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 class CertificateSettingController extends Controller
 {
     /**
-     * Show the certificate settings form
+     * Display the certificate settings edit form.
      */
     public function edit()
     {
@@ -17,7 +17,7 @@ class CertificateSettingController extends Controller
     }
 
     /**
-     * Update the certificate settings
+     * Update certificate settings and save to database.
      */
     public function update(Request $request)
     {

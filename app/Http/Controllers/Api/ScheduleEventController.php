@@ -20,6 +20,9 @@ class ScheduleEventController extends Controller
         'other',
     ];
 
+    /**
+     * Display a listing of schedule events with optional filtering.
+     */
     public function index(Request $request)
     {
         $request->validate([
@@ -41,6 +44,9 @@ class ScheduleEventController extends Controller
         return response()->json($events, Response::HTTP_OK);
     }
 
+    /**
+     * Store a new schedule event.
+     */
     public function store(Request $request)
     {
         $data = $this->validateData($request);
@@ -53,6 +59,9 @@ class ScheduleEventController extends Controller
         );
     }
 
+    /**
+     * Display the specified schedule event details with related data.
+     */
     public function show(ScheduleEvent $scheduleEvent)
     {
         return response()->json(
@@ -61,6 +70,9 @@ class ScheduleEventController extends Controller
         );
     }
 
+    /**
+     * Update the specified schedule event.
+     */
     public function update(Request $request, ScheduleEvent $scheduleEvent)
     {
         $data = $this->validateData($request, true);
@@ -73,6 +85,9 @@ class ScheduleEventController extends Controller
         );
     }
 
+    /**
+     * Remove the specified schedule event.
+     */
     public function destroy(ScheduleEvent $scheduleEvent)
     {
         $scheduleEvent->delete();
@@ -80,6 +95,10 @@ class ScheduleEventController extends Controller
         return response()->json(null, Response::HTTP_NO_CONTENT);
     }
 
+    /**
+     * Validate schedule event data from request.
+     * Handles automatic date/time calculations for recurring events and all-day events.
+     */
     private function validateData(Request $request, bool $partial = false): array
     {
         $required = $partial ? ['sometimes', 'required'] : ['required'];

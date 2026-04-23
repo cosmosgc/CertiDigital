@@ -9,6 +9,9 @@ use Illuminate\Http\Response;
 
 class VerificationLogController extends Controller
 {
+    /**
+     * Display a listing of verification logs with related certificate data.
+     */
     public function index()
     {
         $logs = VerificationLog::with('certificate')->orderBy('checked_at', 'desc')->paginate(50);
@@ -16,6 +19,9 @@ class VerificationLogController extends Controller
         return response()->json($logs, Response::HTTP_OK);
     }
 
+    /**
+     * Store a newly created verification log in storage.
+     */
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -30,11 +36,17 @@ class VerificationLogController extends Controller
         return response()->json($log->load('certificate'), Response::HTTP_CREATED);
     }
 
+    /**
+     * Display the specified verification log details with related certificate data.
+     */
     public function show(VerificationLog $verificationLog)
     {
         return response()->json($verificationLog->load('certificate'), Response::HTTP_OK);
     }
 
+    /**
+     * Remove the specified verification log from storage.
+     */
     public function destroy(VerificationLog $verificationLog)
     {
         $verificationLog->delete();
