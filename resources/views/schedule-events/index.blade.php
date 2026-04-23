@@ -115,7 +115,7 @@
                 <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                         <p class="text-sm font-semibold text-slate-900">{{ __('Turmas ativas') }}</p>
-                        <p class="mt-1 text-sm text-slate-500">{{ __('Clique em uma turma para filtrar a agenda. Clique novamente para remover o filtro.') }}</p>
+                        <p class="mt-1 text-sm text-slate-500">{{ __('Clique nas turmas para filtrar a agenda. Clique novamente para remover uma turma do filtro.') }}</p>
                     </div>
                     <div id="courseClassGridStatus" class="text-xs font-medium uppercase tracking-[0.18em] text-slate-400"></div>
                 </div>
@@ -126,7 +126,7 @@
             <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
                 <div>
                     <label for="courseClassFilter" class="block text-sm font-medium text-gray-700">{{ __('Filtrar por turma') }}</label>
-                    <select id="courseClassFilter" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm">
+                    <select id="courseClassFilter" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" multiple>
                         <option value="">{{ __('Todas as turmas') }}</option>
                     </select>
                 </div>
@@ -356,7 +356,7 @@ let scheduleEvents = [];
 let currentWeekDate = startOfWeek(new Date());
 let currentMonthDate = new Date();
 const initialFilters = {
-    course_class_id: @json(request('course_class_id', '')),
+    course_class_ids: @json(request('course_class_ids', request('course_class_id', []))),
     event_type: @json(request('event_type', '')),
 };
 
@@ -489,25 +489,54 @@ function populateCourseClassOptions(selectedId = '') {
     `;
 }
 
-function populateCourseClassFilterOptions(selectedId = '') {
+function normalizeSelectedClassIds(value = []) {
+    const values = Array.isArray(value) ? value : String(value || '').split(',');
+
+    return values
+        .map(item => String(item || '').trim())
+        .filter(Boolean);
+}
+
+function getSelectedCourseClassIds() {
+    if (!courseClassFilter) {
+        return [];
+    }
+
+    return Array.from(courseClassFilter.selectedOptions)
+        .map(option => option.value)
+        .filter(Boolean);
+}
+
+function setSelectedCourseClassIds(selectedIds = []) {
+    const normalizedIds = normalizeSelectedClassIds(selectedIds);
+
+    Array.from(courseClassFilter.options).forEach(option => {
+        option.selected = normalizedIds.includes(String(option.value));
+    });
+}
+
+function populateCourseClassFilterOptions(selectedIds = []) {
+    const normalizedIds = normalizeSelectedClassIds(selectedIds);
+
     courseClassFilter.innerHTML = `
         <option value="">{{ __('Todas as turmas') }}</option>
         ${courseClasses.map(courseClass => `
-            <option value="${courseClass.id}" ${String(courseClass.id) === String(selectedId) ? 'selected' : ''}>
+            <option value="${courseClass.id}" ${normalizedIds.includes(String(courseClass.id)) ? 'selected' : ''}>
                 ${courseClass.name} ${courseClass.course?.title ? `- ${courseClass.course.title}` : ''}
             </option>
         `).join('')}
     `;
 }
 
-function renderCourseClassGrid(selectedId = '') {
+function renderCourseClassGrid(selectedIds = []) {
     if (!courseClassGrid || !courseClassGridStatus) {
         return;
     }
 
-    const selectedClass = courseClasses.find(courseClass => String(courseClass.id) === String(selectedId));
-    courseClassGridStatus.textContent = selectedClass
-        ? `${@json(__('Ativa'))}: ${selectedClass.name}`
+    const normalizedIds = normalizeSelectedClassIds(selectedIds);
+    const selectedClasses = courseClasses.filter(courseClass => normalizedIds.includes(String(courseClass.id)));
+    courseClassGridStatus.textContent = selectedClasses.length
+        ? `${selectedClasses.length} ${selectedClasses.length === 1 ? @json(__('ativa')) : @json(__('ativas'))}`
         : @json(__('Todas visíveis'));
 
     if (!courseClasses.length) {
@@ -520,7 +549,7 @@ function renderCourseClassGrid(selectedId = '') {
     }
 
     courseClassGrid.innerHTML = courseClasses.map(courseClass => {
-        const isSelected = String(courseClass.id) === String(selectedId);
+        const isSelected = normalizedIds.includes(String(courseClass.id));
         const modality = getCourseClassModality(courseClass);
         const tone = getCourseClassTone(modality);
         const studentsCount = getCourseClassStudentsCount(courseClass);
@@ -883,7 +912,7 @@ function renderScheduleEvents(list) {
 
 function getActiveFilters() {
     return {
-        course_class_id: courseClassFilter.value || '',
+        course_class_ids: getSelectedCourseClassIds(),
         event_type: eventTypeFilter.value || '',
     };
 }
@@ -892,8 +921,12 @@ function buildScheduleEventsUrl() {
     const url = new URL('{{ route("api.schedule-events.index") }}', window.location.origin);
     const filters = getActiveFilters();
 
-    if (filters.course_class_id) {
-        url.searchParams.set('course_class_id', filters.course_class_id);
+    filters.course_class_ids.forEach(id => {
+        url.searchParams.append('course_class_ids[]', id);
+    });
+
+    if (filters.course_class_ids.length === 1) {
+        url.searchParams.set('course_class_id', filters.course_class_ids[0]);
     }
 
     if (filters.event_type) {
@@ -907,8 +940,15 @@ function syncPageUrl() {
     const url = new URL(window.location.href);
     const filters = getActiveFilters();
 
-    if (filters.course_class_id) {
-        url.searchParams.set('course_class_id', filters.course_class_id);
+    url.searchParams.delete('course_class_id');
+    url.searchParams.delete('course_class_ids[]');
+
+    filters.course_class_ids.forEach(id => {
+        url.searchParams.append('course_class_ids[]', id);
+    });
+
+    if (filters.course_class_ids.length === 1) {
+        url.searchParams.set('course_class_id', filters.course_class_ids[0]);
     } else {
         url.searchParams.delete('course_class_id');
     }
@@ -997,8 +1037,8 @@ async function loadDependencies() {
     if (canManageScheduleEvents) {
         populateCourseClassOptions();
     }
-    populateCourseClassFilterOptions(initialFilters.course_class_id);
-    renderCourseClassGrid(initialFilters.course_class_id);
+    populateCourseClassFilterOptions(initialFilters.course_class_ids);
+    renderCourseClassGrid(initialFilters.course_class_ids);
     eventTypeFilter.value = initialFilters.event_type;
 }
 
@@ -1038,14 +1078,15 @@ document.getElementById('applyFiltersBtn').addEventListener('click', () => {
 });
 
 document.getElementById('resetFiltersBtn').addEventListener('click', () => {
-    courseClassFilter.value = '';
+    setSelectedCourseClassIds([]);
     eventTypeFilter.value = '';
-    renderCourseClassGrid('');
+    renderCourseClassGrid([]);
     fetchScheduleEvents();
 });
 
 courseClassFilter.addEventListener('change', () => {
-    renderCourseClassGrid(courseClassFilter.value);
+    const selectedIds = getSelectedCourseClassIds();
+    renderCourseClassGrid(selectedIds);
     fetchScheduleEvents();
 });
 eventTypeFilter.addEventListener('change', fetchScheduleEvents);
@@ -1058,8 +1099,17 @@ courseClassGrid?.addEventListener('click', (event) => {
     }
 
     const selectedId = card.dataset.id || '';
-    courseClassFilter.value = courseClassFilter.value === selectedId ? '' : selectedId;
-    renderCourseClassGrid(courseClassFilter.value);
+    const selectedIds = new Set(getSelectedCourseClassIds());
+
+    if (selectedIds.has(selectedId)) {
+        selectedIds.delete(selectedId);
+    } else {
+        selectedIds.add(selectedId);
+    }
+
+    const nextSelectedIds = Array.from(selectedIds);
+    setSelectedCourseClassIds(nextSelectedIds);
+    renderCourseClassGrid(nextSelectedIds);
     fetchScheduleEvents();
 });
 

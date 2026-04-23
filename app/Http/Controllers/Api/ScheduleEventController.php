@@ -27,19 +27,29 @@ class ScheduleEventController extends Controller
     {
         $request->validate([
             'course_class_id' => 'nullable|integer|exists:course_classes,id',
+            'course_class_ids' => 'nullable|array',
+            'course_class_ids.*' => 'integer|exists:course_classes,id',
             'event_type' => ['nullable', 'string', Rule::in(self::EVENT_TYPES)],
         ]);
 
+        $courseClassIds = collect($request->input('course_class_ids', []))
+            ->when($request->filled('course_class_id'), fn ($ids) => $ids->push($request->integer('course_class_id')))
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->values();
+
         $events = ScheduleEvent::with(['courseClass.course', 'courseClass.instructor'])
-            ->when($request->filled('course_class_id'), function ($query) use ($request) {
-                $query->where('course_class_id', $request->integer('course_class_id'));
+            ->when($courseClassIds->isNotEmpty(), function ($query) use ($courseClassIds) {
+                $query->whereIn('course_class_id', $courseClassIds);
             })
             ->when($request->filled('event_type'), function ($query) use ($request) {
                 $query->where('event_type', $request->string('event_type')->toString());
             })
             ->orderBy('start_date')
             ->orderByRaw('COALESCE(start_time, "23:59:59")')
-            ->paginate(15);
+            ->paginate(15)
+            ->withQueryString();
 
         return response()->json($events, Response::HTTP_OK);
     }
