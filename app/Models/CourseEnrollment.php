@@ -48,4 +48,10 @@ class CourseEnrollment extends Model
     {
         return $this->belongsTo(CourseClass::class);
     }
+
+    public function billings()
+    {
+        return $this->hasMany(StudentBilling::class, 'course_enrollment_id')
+            ->orderByDesc('reference_month');
+    }
 }

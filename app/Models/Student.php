@@ -47,4 +47,9 @@ class Student extends Model
     {
         return $this->hasMany(StudentAnnotation::class)->orderByDesc('annotation_date')->orderByDesc('id');
     }
+
+    public function billings()
+    {
+        return $this->hasMany(StudentBilling::class)->orderByDesc('reference_month');
+    }
 }

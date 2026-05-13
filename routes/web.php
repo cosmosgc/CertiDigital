@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\FinancialReportController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CertificateSettingController;
 use App\Http\Controllers\ScheduleEventController;
@@ -20,7 +21,7 @@ Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'ind
 Route::get('/dashboard/live-classes', [\App\Http\Controllers\DashboardController::class, 'liveClasses'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard.live-classes');
-    
+
 Route::get('/schedule-events', [ScheduleEventController::class, 'index'])->name('schedule-events.index');
 
 Route::middleware('auth')->group(function () {
@@ -60,6 +61,9 @@ Route::middleware('auth')->group(function () {
             return view('course-classes.attendance-report', compact('courseClass'));
         })->name('course-classes.attendance-report');
         Route::view('/certificates', 'certificates.index')->name('certificates.index');
+        Route::get('/financial/reports', [FinancialReportController::class, 'index'])->name('financial.reports');
+        Route::post('/financial/reports/instructors/{instructor}/contract', [FinancialReportController::class, 'saveInstructorContract'])
+            ->name('financial.reports.instructor-contract.save');
 
         // Certificate settings routes
         Route::get('/certificate-settings', [CertificateSettingController::class, 'edit'])->name('certificate-settings.edit');
