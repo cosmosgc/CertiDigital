@@ -305,10 +305,10 @@ function renderReport(data) {
                         </td>
                     `;
                 }).join('')}
-                <td class="p-3 align-top ring-1 ring-gray-200">
-                    <div class="text-sm font-medium text-gray-900">${presentCountByStudent}/${attendances.length} {{ __('sessões presentes') }}</div>
-                    <div class="mt-1 text-xs text-gray-500">${studentAttendanceRatio.presentPercent}% {{ __('presente') }} • ${studentAttendanceRatio.absentPercent}% {{ __('ausente') }}</div>
-                    <div class="mt-1 text-xs text-gray-500">${absentCountByStudent} {{ __('faltas') }}</div>
+                <td class="p-3 text-center ring-1 ring-gray-200">
+                    <span class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${studentAttendanceRatio.presentPercent >= 75 ? 'bg-emerald-100 text-emerald-700' : studentAttendanceRatio.presentPercent >= 50 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'}">
+                        ${studentAttendanceRatio.presentPercent}% • ${presentCountByStudent}/${attendances.length}
+                    </span>
                 </td>
             </tr>
         `;

@@ -96,6 +96,46 @@ class FinancialReportController extends Controller
             ->sortByDesc('amount')
             ->values();
 
+        // Range totals and line graph
+        $rangeStartInput = (string) $request->query('start', $monthInput);
+        $rangeEndInput = (string) $request->query('end', $monthInput);
+
+        try {
+            $rangeStart = Carbon::createFromFormat('Y-m', $rangeStartInput)->startOfMonth();
+            $rangeEnd = Carbon::createFromFormat('Y-m', $rangeEndInput)->endOfMonth();
+        } catch (\Throwable $e) {
+            $rangeStart = $referenceMonth->copy()->startOfMonth();
+            $rangeEnd = $referenceMonth->copy()->endOfMonth();
+        }
+
+        $billingsForRange = StudentBilling::whereBetween('reference_month', [$rangeStart->toDateString(), $rangeEnd->toDateString()])->get();
+
+        $rangeBillingTotal = (float) $billingsForRange->sum('amount');
+        $rangeBillingPaid = (float) $billingsForRange->where('status', 'paid')->sum('amount');
+        $rangeBillingPending = (float) $billingsForRange->where('status', 'pending')->sum('amount');
+        $rangeBillingOverdue = (float) $billingsForRange
+            ->where('status', 'pending')
+            ->filter(fn (StudentBilling $billing) => $billing->due_date && $billing->due_date->isPast())
+            ->sum('amount');
+
+        $rangeInstructorTotal = $this->calculateInstructorTotalForPeriod($rangeStart, $rangeEnd);
+
+        $rangeLabels = [];
+        $rangeBillingValues = [];
+        $rangeInstructorValues = [];
+
+        $cursor = $rangeStart->copy();
+        while ($cursor->lte($rangeEnd)) {
+            $s = $cursor->copy()->startOfMonth();
+            $e = $cursor->copy()->endOfMonth();
+
+            $rangeLabels[] = $cursor->translatedFormat('M/Y');
+            $rangeBillingValues[] = (float) StudentBilling::whereBetween('reference_month', [$s->toDateString(), $e->toDateString()])->sum('amount');
+            $rangeInstructorValues[] = $this->calculateInstructorTotalForPeriod($s, $e);
+
+            $cursor->addMonth();
+        }
+
         $monthlyLabels = [];
         $monthlyBillingValues = [];
         $monthlyInstructorValues = [];
@@ -122,6 +162,16 @@ class FinancialReportController extends Controller
             'monthlyLabels' => $monthlyLabels,
             'monthlyBillingValues' => $monthlyBillingValues,
             'monthlyInstructorValues' => $monthlyInstructorValues,
+            'rangeStart' => $rangeStart,
+            'rangeEnd' => $rangeEnd,
+            'rangeBillingTotal' => $rangeBillingTotal,
+            'rangeBillingPaid' => $rangeBillingPaid,
+            'rangeBillingPending' => $rangeBillingPending,
+            'rangeBillingOverdue' => $rangeBillingOverdue,
+            'rangeInstructorTotal' => $rangeInstructorTotal,
+            'rangeLabels' => $rangeLabels,
+            'rangeBillingValues' => $rangeBillingValues,
+            'rangeInstructorValues' => $rangeInstructorValues,
         ]);
     }
 

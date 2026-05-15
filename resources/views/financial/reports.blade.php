@@ -5,9 +5,19 @@
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-300">{{ __('Financeiro') }}</p>
                 <h2 class="mt-1 text-3xl font-semibold text-white">{{ __('Relatórios de ganhos e faturamento') }}</h2>
             </div>
-            <form method="GET" action="{{ route('financial.reports') }}" class="flex items-center gap-2">
-                <label for="month" class="text-sm text-slate-200">{{ __('Mês') }}</label>
-                <input id="month" type="month" name="month" value="{{ $referenceMonth->format('Y-m') }}" class="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            <form method="GET" action="{{ route('financial.reports') }}" class="flex flex-wrap items-end gap-x-4 gap-y-2">
+                <div>
+                    <label for="month" class="block text-xs text-slate-300">{{ __('Mês (detalhes)') }}</label>
+                    <input id="month" type="month" name="month" value="{{ $referenceMonth->format('Y-m') }}" class="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+                </div>
+                <div>
+                    <label for="start" class="block text-xs text-slate-300">{{ __('Início') }}</label>
+                    <input id="start" type="month" name="start" value="{{ $rangeStart->format('Y-m') }}" class="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+                </div>
+                <div>
+                    <label for="end" class="block text-xs text-slate-300">{{ __('Fim') }}</label>
+                    <input id="end" type="month" name="end" value="{{ $rangeEnd->format('Y-m') }}" class="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+                </div>
                 <button class="rounded-xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white">{{ __('Filtrar') }}</button>
             </form>
         </div>
@@ -44,6 +54,32 @@
                     <p class="text-xs uppercase tracking-[0.2em] text-slate-400">{{ __('A pagar instrutores') }}</p>
                     <p class="mt-2 text-3xl font-semibold text-rose-700">R$ {{ number_format($instructorTotal, 2, ',', '.') }}</p>
                 </article>
+            </section>
+
+            <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <article class="rounded-2xl border border-cyan-200 bg-cyan-50/90 p-5">
+                    <p class="text-xs uppercase tracking-[0.2em] text-cyan-700">{{ __('Total faturado (período)') }}</p>
+                    <p class="mt-2 text-3xl font-semibold text-slate-900">R$ {{ number_format($rangeBillingTotal, 2, ',', '.') }}</p>
+                </article>
+                <article class="rounded-2xl border border-emerald-200 bg-emerald-50/90 p-5">
+                    <p class="text-xs uppercase tracking-[0.2em] text-emerald-700">{{ __('Total recebido (período)') }}</p>
+                    <p class="mt-2 text-3xl font-semibold text-emerald-700">R$ {{ number_format($rangeBillingPaid, 2, ',', '.') }}</p>
+                </article>
+                <article class="rounded-2xl border border-amber-200 bg-amber-50/90 p-5">
+                    <p class="text-xs uppercase tracking-[0.2em] text-amber-700">{{ __('Pendente (período)') }}</p>
+                    <p class="mt-2 text-3xl font-semibold text-amber-700">R$ {{ number_format($rangeBillingPending, 2, ',', '.') }}</p>
+                </article>
+                <article class="rounded-2xl border border-rose-200 bg-rose-50/90 p-5">
+                    <p class="text-xs uppercase tracking-[0.2em] text-rose-700">{{ __('A pagar instrutores (período)') }}</p>
+                    <p class="mt-2 text-3xl font-semibold text-rose-700">R$ {{ number_format($rangeInstructorTotal, 2, ',', '.') }}</p>
+                </article>
+            </section>
+
+            <section class="rounded-3xl border border-slate-900/10 bg-slate-950 p-6">
+                <h3 class="text-xl font-semibold text-white">{{ __('Evolução no período') }}</h3>
+                <div class="mt-4 h-[300px]">
+                    <canvas id="rangeGrowthChart"></canvas>
+                </div>
             </section>
 
             <section class="rounded-3xl border border-slate-900/10 bg-slate-950 p-6">
@@ -167,6 +203,47 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        const rangeLabels = @json($rangeLabels);
+        const rangeBilling = @json($rangeBillingValues);
+        const rangeInstructors = @json($rangeInstructorValues);
+
+        const rangeCtx = document.getElementById('rangeGrowthChart');
+        if (rangeCtx) {
+            new Chart(rangeCtx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: rangeLabels,
+                    datasets: [
+                        {
+                            label: @json(__('Faturamento alunos')),
+                            data: rangeBilling,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                            fill: true,
+                            tension: 0.3,
+                        },
+                        {
+                            label: @json(__('Custo instrutores')),
+                            data: rangeInstructors,
+                            borderColor: '#f43f5e',
+                            backgroundColor: 'rgba(244, 63, 94, 0.08)',
+                            fill: true,
+                            tension: 0.3,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#e2e8f0' } } },
+                    scales: {
+                        x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+                        y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.12)' } },
+                    },
+                },
+            });
+        }
+
         const labels = @json($monthlyLabels);
         const billing = @json($monthlyBillingValues);
         const instructors = @json($monthlyInstructorValues);
