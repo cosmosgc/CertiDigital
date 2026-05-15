@@ -12,6 +12,11 @@ class CourseClassAttendanceRecord extends Model
     protected $fillable = [
         'course_class_attendance_id',
         'student_id',
+        'grade',
+    ];
+
+    protected $casts = [
+        'grade' => 'decimal:2',
     ];
 
     public function attendance()

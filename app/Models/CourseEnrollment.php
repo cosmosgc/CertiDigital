@@ -54,4 +54,9 @@ class CourseEnrollment extends Model
         return $this->hasMany(StudentBilling::class, 'course_enrollment_id')
             ->orderByDesc('reference_month');
     }
+
+    public function trimesterGrades()
+    {
+        return $this->hasMany(CourseEnrollmentTrimesterGrade::class, 'course_enrollment_id');
+    }
 }

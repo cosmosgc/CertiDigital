@@ -373,7 +373,17 @@ function renderStudent(data) {
     const enrollments = data.enrollments || [];
 
     studentName.textContent = data.full_name || '';
-    studentMeta.textContent = `${data.email || '-'} • {{ __('Documento') }}: ${data.document_id || '-'}`;
+    function computeAge(birthDate) {
+        if (!birthDate) return '';
+        const birth = new Date(birthDate + 'T12:00:00');
+        const today = new Date();
+        let age = today.getFullYear() - birth.getFullYear();
+        const m = today.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+        return age + ' {{ __("anos") }}';
+    }
+    const birthDate = data.birth_date ? new Date(data.birth_date + 'T12:00:00').toLocaleDateString('pt-BR') : '-';
+    studentMeta.textContent = `${data.email || '-'} • {{ __('Documento') }}: ${data.document_id || '-'} • {{ __('Nascimento') }}: ${birthDate} (${computeAge(data.birth_date)})`;
     enrollmentCount.textContent = enrollments.length;
     certificateCount.textContent = (data.certificates || []).length;
     annotationCount.textContent = annotations.length;

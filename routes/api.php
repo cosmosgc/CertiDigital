@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\CourseClassController;
 use App\Http\Controllers\Api\CourseClassAttendanceController;
 use App\Http\Controllers\Api\CourseClassAttendanceRecordController;
+use App\Http\Controllers\Api\PerformanceReportController;
 use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\InstructorController;
 use App\Http\Controllers\Api\CertificateController;
@@ -49,6 +50,7 @@ Route::name('api.')->group(function () {
         Route::put('course-class-attendances/{course_class_attendance}', [CourseClassAttendanceController::class, 'update'])->name('course-class-attendances.update');
         Route::delete('course-class-attendances/{course_class_attendance}', [CourseClassAttendanceController::class, 'destroy'])->name('course-class-attendances.destroy');
         Route::post('course-class-attendances/{course_class_attendance}/records', [CourseClassAttendanceRecordController::class, 'store'])->name('course-class-attendances.records.store');
+        Route::put('course-class-attendance-records/{course_class_attendance_record}', [CourseClassAttendanceRecordController::class, 'update'])->name('course-class-attendance-records.update');
         Route::delete('course-class-attendance-records/{course_class_attendance_record}', [CourseClassAttendanceRecordController::class, 'destroy'])->name('course-class-attendance-records.destroy');
         Route::apiResource('students', StudentController::class)->only(['store', 'update', 'destroy']);
         Route::get('admin/students/{student}', [StudentController::class, 'detail'])->name('admin.students.show');
@@ -58,6 +60,9 @@ Route::name('api.')->group(function () {
         Route::apiResource('course-enrollments', CourseEnrollmentController::class);
         Route::apiResource('student-annotations', StudentAnnotationController::class);
         Route::apiResource('verification-logs', VerificationLogController::class)->only(['index', 'store', 'show', 'destroy']);
+
+        // performance report
+        Route::get('course-classes/{course_class}/performance-report', [PerformanceReportController::class, 'show'])->name('course-classes.performance-report');
 
         // admin user/role management endpoints
         Route::post('admin/users/{user}/toggle-admin', [\App\Http\Controllers\Admin\UserController::class, 'toggleAdmin'])->name('admin.users.toggle-admin');

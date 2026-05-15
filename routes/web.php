@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\FinancialReportController;
+use App\Http\Controllers\PerformanceReportController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CertificateSettingController;
 use App\Http\Controllers\ScheduleEventController;
@@ -60,6 +61,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/course-classes/{courseClass}/attendance-report', function (CourseClass $courseClass) {
             return view('course-classes.attendance-report', compact('courseClass'));
         })->name('course-classes.attendance-report');
+        Route::get('/course-classes/{courseClass}/performance-report', [PerformanceReportController::class, 'show'])->name('course-classes.performance-report');
         Route::view('/certificates', 'certificates.index')->name('certificates.index');
         Route::get('/financial/reports', [FinancialReportController::class, 'index'])->name('financial.reports');
         Route::post('/financial/reports/instructors/{instructor}/contract', [FinancialReportController::class, 'saveInstructorContract'])

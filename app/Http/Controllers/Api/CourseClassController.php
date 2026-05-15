@@ -57,6 +57,7 @@ class CourseClassController extends Controller
                 'course',
                 'instructor',
                 'enrollments.student',
+                'enrollments.trimesterGrades',
                 'students',
                 'attendances.records.student',
             ]),

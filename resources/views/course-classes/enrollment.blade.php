@@ -90,6 +90,17 @@
                         </button>
                     </div>
                 </form>
+
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">{{ __('Notas por Trimestre') }}</h3>
+                            <p class="text-sm text-gray-500">{{ __('Registre as atividades e avaliações unificadas (A.U.) de cada trimestre.') }}</p>
+                        </div>
+                        <button type="button" id="toggleTrimesterGrades" class="rounded-xl bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 ring-1 ring-gray-300">{{ __('Mostrar') }}</button>
+                    </div>
+                    <div id="trimesterGradesContainer" class="hidden mt-6 space-y-6"></div>
+                </div>
             </section>
         @endif
 
@@ -190,6 +201,14 @@ const classShowUrl = @json(route('course-classes.show', $courseClass));
 const attendanceShowBaseUrl = @json(route('course-class-attendances.show', ['courseClass' => $courseClass, 'courseClassAttendance' => '__ATTENDANCE__']));
 const enrollmentUpdateUrl = @json(route('api.course-enrollments.update', ['course_enrollment' => $courseEnrollment]));
 
+const TRIMESTER_LABELS = {
+    1: '{{ __("1º Trimestre") }}',
+    2: '{{ __("2º Trimestre") }}',
+    3: '{{ __("3º Trimestre") }}',
+    4: '{{ __("4º Trimestre") }}',
+};
+let trimesterGradesData = [];
+
 function formatHours(value) {
     const numeric = Number(value ?? 0);
     return `${numeric % 1 === 0 ? numeric.toFixed(0) : numeric.toFixed(2)}h`;
@@ -222,6 +241,95 @@ function fillAdminEnrollmentForm(enrollment) {
     adminEnrollmentForm.end_date.value = formatDateInputValue(enrollment.end_date);
     adminEnrollmentForm.completed.checked = Boolean(enrollment.completed);
     adminEnrollmentForm.frozen.checked = Boolean(enrollment.frozen);
+}
+
+function renderTrimesterGrades(enrollment) {
+    const container = document.getElementById('trimesterGradesContainer');
+    if (!container) return;
+
+    trimesterGradesData = (enrollment.trimester_grades || []).map(tg => ({ ...tg }));
+
+    let html = '<div class="grid gap-6">';
+    for (let t = 1; t <= 4; t++) {
+        const tg = trimesterGradesData.find(g => g.trimester === t) || { trimester: t };
+        html += `
+            <fieldset class="rounded-2xl border border-gray-200 bg-gray-50/50 p-4" data-trimester="${t}">
+                <legend class="text-sm font-semibold text-gray-900 px-2">${TRIMESTER_LABELS[t]}</legend>
+                <div class="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                    <div class="space-y-1">
+                        <label class="text-xs font-medium text-gray-600">{{ __("Atividade 1") }}</label>
+                        <input type="number" min="0" max="100" step="0.01" class="tg-input block w-full rounded-lg border-gray-300 shadow-sm text-sm" data-trimester="${t}" data-field="activity_grade_1" value="${tg.activity_grade_1 ?? ''}">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs font-medium text-gray-600">{{ __("Atividade 2") }}</label>
+                        <input type="number" min="0" max="100" step="0.01" class="tg-input block w-full rounded-lg border-gray-300 shadow-sm text-sm" data-trimester="${t}" data-field="activity_grade_2" value="${tg.activity_grade_2 ?? ''}">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs font-medium text-gray-600">{{ __("Atividade 3") }}</label>
+                        <input type="number" min="0" max="100" step="0.01" class="tg-input block w-full rounded-lg border-gray-300 shadow-sm text-sm" data-trimester="${t}" data-field="activity_grade_3" value="${tg.activity_grade_3 ?? ''}">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs font-medium text-gray-600">{{ __("Média Ativ.") }}</label>
+                        <input type="text" readonly class="tg-avg block w-full rounded-lg bg-gray-100 border-gray-200 shadow-sm text-sm font-semibold text-gray-900" data-trimester="${t}" data-type="activities" value="${tg.activities_average ?? ''}">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs font-medium text-indigo-600">{{ __("A.U. 1") }}</label>
+                        <input type="number" min="0" max="100" step="0.01" class="tg-input block w-full rounded-lg border-gray-300 shadow-sm text-sm" data-trimester="${t}" data-field="au_grade_1" value="${tg.au_grade_1 ?? ''}">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs font-medium text-indigo-600">{{ __("A.U. 2") }}</label>
+                        <input type="number" min="0" max="100" step="0.01" class="tg-input block w-full rounded-lg border-gray-300 shadow-sm text-sm" data-trimester="${t}" data-field="au_grade_2" value="${tg.au_grade_2 ?? ''}">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs font-medium text-indigo-600">{{ __("A.U. 3") }}</label>
+                        <input type="number" min="0" max="100" step="0.01" class="tg-input block w-full rounded-lg border-gray-300 shadow-sm text-sm" data-trimester="${t}" data-field="au_grade_3" value="${tg.au_grade_3 ?? ''}">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs font-medium text-indigo-600">{{ __("Média A.U.") }}</label>
+                        <input type="text" readonly class="tg-avg block w-full rounded-lg bg-gray-100 border-gray-200 shadow-sm text-sm font-semibold text-gray-900" data-trimester="${t}" data-type="au" value="${tg.au_average ?? ''}">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs font-medium text-gray-900">{{ __("Nota Final") }}</label>
+                        <input type="number" min="0" max="100" step="0.01" class="tg-input block w-full rounded-lg border-gray-300 shadow-sm text-sm font-bold" data-trimester="${t}" data-field="final_grade" value="${tg.final_grade ?? ''}">
+                    </div>
+                </div>
+            </fieldset>
+        `;
+    }
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function collectTrimesterGrades() {
+    const inputs = document.querySelectorAll('.tg-input');
+    const map = {};
+    inputs.forEach(input => {
+        const t = input.dataset.trimester;
+        const field = input.dataset.field;
+        if (!map[t]) map[t] = { trimester: parseInt(t) };
+        map[t][field] = input.value ? parseFloat(input.value) : null;
+    });
+    return Object.values(map);
+}
+
+function computeAverages() {
+    document.querySelectorAll('.tg-avg').forEach(el => {
+        const t = el.dataset.trimester;
+        const type = el.dataset.type;
+        const prefix = type === 'activities' ? 'activity_grade' : 'au_grade';
+        const values = [];
+        for (let i = 1; i <= 3; i++) {
+            const input = document.querySelector(`.tg-input[data-trimester="${t}"][data-field="${prefix}_${i}"]`);
+            const val = input ? parseFloat(input.value) : null;
+            if (val !== null && !isNaN(val)) values.push(val);
+        }
+        if (values.length > 0) {
+            const avg = values.reduce((a, b) => a + b, 0) / values.length;
+            el.value = avg.toFixed(2).replace('.', ',');
+        } else {
+            el.value = '';
+        }
+    });
 }
 
 async function fetchEnrollmentData() {
@@ -259,6 +367,7 @@ function renderEnrollment(data) {
     progressHours.textContent = formatHours(progress);
     attendanceCount.textContent = attendedSessions;
     fillAdminEnrollmentForm(enrollment);
+    renderTrimesterGrades(enrollment);
     printCourseTitle.textContent = data.course?.title || '-';
     printStudentName.textContent = enrollment.student?.full_name || '-';
     printAttendanceCount.textContent = `${attendedSessions} {{ __('de') }} ${(data.attendances || []).length}`;
@@ -358,6 +467,21 @@ function renderEnrollment(data) {
 refreshButton.addEventListener('click', fetchEnrollmentData);
 printButton.addEventListener('click', () => window.print());
 
+const toggleTrimesterBtn = document.getElementById('toggleTrimesterGrades');
+const trimesterContainer = document.getElementById('trimesterGradesContainer');
+if (toggleTrimesterBtn && trimesterContainer) {
+    toggleTrimesterBtn.addEventListener('click', () => {
+        const hidden = trimesterContainer.classList.toggle('hidden');
+        toggleTrimesterBtn.textContent = hidden ? '{{ __("Mostrar") }}' : '{{ __("Ocultar") }}';
+    });
+}
+
+document.addEventListener('input', (e) => {
+    if (e.target.classList.contains('tg-input')) {
+        computeAverages();
+    }
+});
+
 if (adminEnrollmentForm && isAdmin) {
     adminEnrollmentForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -377,6 +501,7 @@ if (adminEnrollmentForm && isAdmin) {
                 start_date: adminEnrollmentForm.start_date.value || null,
                 end_date: adminEnrollmentForm.end_date.value || null,
                 frozen: adminEnrollmentForm.frozen.checked,
+                trimester_grades: collectTrimesterGrades(),
             })
         });
 

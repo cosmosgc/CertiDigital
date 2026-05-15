@@ -28,6 +28,7 @@ class StudentController extends Controller
             'full_name' => 'required|string|max:255',
             'email' => 'required|email|unique:students,email',
             'document_id' => 'nullable|string|max:255',
+            'birth_date' => 'nullable|date',
         ]);
 
         $student = Student::create($data);
@@ -55,6 +56,7 @@ class StudentController extends Controller
             'certificates',
             'enrollments.course',
             'enrollments.courseClass.instructor',
+            'enrollments.trimesterGrades',
             'annotations.courseClass.course',
             'annotations.attendanceRecord.attendance',
         ]);
@@ -71,6 +73,7 @@ class StudentController extends Controller
             'full_name' => 'sometimes|required|string|max:255',
             'email' => 'sometimes|required|email|unique:students,email,' . $student->id,
             'document_id' => 'nullable|string|max:255',
+            'birth_date' => 'nullable|date',
         ]);
 
         $student->update($data);

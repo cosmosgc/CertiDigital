@@ -19,6 +19,7 @@
                         <th class="p-2">{{ __('Nome') }}</th>
                         <th class="p-2">{{ __('E-mail') }}</th>
                         <th class="p-2">{{ __('Documento') }}</th>
+                        <th class="p-2">{{ __('Nascimento') }}</th>
                         <th class="p-2">{{ __('Ações') }}</th>
                     </tr>
                 </thead>
@@ -43,6 +44,10 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700">{{ __('Documento') }}</label>
                     <input name="document_id" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">{{ __('Data de Nascimento') }}</label>
+                    <input name="birth_date" type="date" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
                 </div>
                 <div class="flex gap-2">
                     <button type="submit" class="rounded-xl bg-indigo-600 px-4 py-2 text-white">{{ __('Salvar') }}</button>
@@ -79,11 +84,18 @@ function renderStudents(list) {
     (list || []).forEach(s => {
         const showUrl = `{{ route("students.show", ["student" => "__ID__"]) }}`.replace('__ID__', s.id);
         const tr = document.createElement('tr');
+        function formatDate(value) {
+            if (!value) return '-';
+            const d = new Date(value + 'T12:00:00');
+            return d.toLocaleDateString('pt-BR');
+        }
+
         tr.innerHTML = `
             <td class="p-2">${s.id}</td>
             <td class="p-2"><a class="font-medium text-indigo-700 hover:text-indigo-900" href="${showUrl}">${s.full_name}</a></td>
             <td class="p-2">${s.email}</td>
             <td class="p-2">${s.document_id || ''}</td>
+            <td class="p-2">${formatDate(s.birth_date)}</td>
             <td class="p-2">
                 <a class="px-2 py-1 bg-sky-500 text-white rounded inline-block" href="${showUrl}">{{ __('Ver') }}</a>
                 <button class="editBtn px-2 py-1 bg-yellow-400 rounded" data-id="${s.id}">{{ __('Editar') }}</button>
@@ -121,6 +133,7 @@ studentsTableBody.addEventListener('click', async (e) => {
         studentForm.full_name.value = student.full_name;
         studentForm.email.value = student.email;
         studentForm.document_id.value = student.document_id || '';
+        studentForm.birth_date.value = student.birth_date ? student.birth_date.slice(0, 10) : '';
         studentForm.id.value = student.id;
         formTitle.textContent = @json(__('Editar aluno'));
         formContainer.classList.remove('hidden');
@@ -147,6 +160,7 @@ studentForm.addEventListener('submit', async (e) => {
         full_name: studentForm.full_name.value,
         email: studentForm.email.value,
         document_id: studentForm.document_id.value || null,
+        birth_date: studentForm.birth_date.value || null,
         user_id: currentUserId,
     };
 

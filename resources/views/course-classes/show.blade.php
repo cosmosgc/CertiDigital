@@ -13,6 +13,7 @@
                 </div>
                 <div class="flex flex-wrap gap-3">
                     <a href="{{ route('course-classes.attendance-report', $courseClass) }}" class="inline-flex items-center rounded-xl bg-white px-4 py-3 text-sm font-semibold text-emerald-800 shadow">{{ __('Relatório de presença') }}</a>
+                    <a href="{{ route('course-classes.performance-report', $courseClass) }}" class="inline-flex items-center rounded-xl bg-white px-4 py-3 text-sm font-semibold text-emerald-800 shadow">{{ __('Relatório de desempenho') }}</a>
                     <a href="{{ route('course-classes.manage', $courseClass) }}" class="inline-flex items-center rounded-xl bg-white px-4 py-3 text-sm font-semibold text-emerald-800 shadow">{{ __('Gerenciar turma') }}</a>
                     <button id="refreshButton" type="button" class="inline-flex items-center rounded-xl border border-white/25 bg-white/10 px-4 py-3 text-sm font-semibold text-white backdrop-blur">{{ __('Atualizar dados') }}</button>
                 </div>

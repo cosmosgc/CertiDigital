@@ -13,6 +13,11 @@ class Student extends Model
         'full_name',
         'email',
         'document_id',
+        'birth_date',
+    ];
+
+    protected $casts = [
+        'birth_date' => 'date',
     ];
 
     /* ==========================

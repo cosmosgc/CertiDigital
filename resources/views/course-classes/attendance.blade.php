@@ -347,6 +347,7 @@ function renderAttendance() {
         const present = Boolean(record);
         const progressHours = Number(enrollment.progress_hours ?? 0);
         const progressPercent = getProgressPercent(progressHours, workloadHours);
+        const grade = record?.grade ?? '';
 
         return `
             <div
@@ -366,6 +367,10 @@ function renderAttendance() {
                 <div class="mt-4 flex items-center justify-between gap-3 text-sm">
                     <span class="text-gray-500">{{ __('Progresso atual') }}</span>
                     <span class="font-medium text-gray-900">${formatHours(progressHours)} (${progressPercent}%)</span>
+                </div>
+                <div class="mt-3 flex items-center gap-3 ${isGuestMode ? 'hidden' : ''}">
+                    <label class="text-xs font-medium text-gray-600">{{ __('Nota') }}</label>
+                    <input type="number" min="0" max="100" step="0.01" class="gradeInput block w-24 rounded-lg border-gray-300 shadow-sm text-sm" data-student-id="${enrollment.student_id}" value="${grade}" ${present ? '' : 'disabled'}>
                 </div>
                 <div class="${isGuestMode ? 'hidden' : ''} mt-4 flex justify-end">
                     ${present ? `
@@ -415,6 +420,36 @@ attendanceForm.addEventListener('submit', async (e) => {
     }
 });
 
+// Auto-save grade on blur
+document.addEventListener('blur', async (e) => {
+    if (isGuestMode) return;
+    const input = e.target.closest('.gradeInput');
+    if (!input) return;
+
+    const toggleButton = input.closest('.attendanceToggle');
+    if (!toggleButton) return;
+
+    const recordId = toggleButton.dataset.recordId;
+    if (!recordId) return;
+
+    const grade = input.value || null;
+    const res = await fetch(`{{ route("api.course-class-attendance-records.update", ["course_class_attendance_record" => "__ID__"]) }}`.replace('__ID__', recordId), {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token,
+            'X-User-Id': currentUserId,
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({ grade })
+    });
+
+    if (!res.ok) {
+        alert(@json(__('Erro ao salvar nota')));
+    }
+});
+
 attendanceRoster.addEventListener('click', async (e) => {
     if (isGuestMode) return;
 
@@ -424,6 +459,9 @@ attendanceRoster.addEventListener('click', async (e) => {
         selectAnnotationTarget(annotationButton.dataset.studentId, annotationButton.dataset.recordId);
         return;
     }
+
+    const gradeInput = e.target.closest('.gradeInput');
+    if (gradeInput) return;
 
     const toggleButton = e.target.closest('.attendanceToggle');
     if (!toggleButton) return;
@@ -445,6 +483,9 @@ attendanceRoster.addEventListener('click', async (e) => {
             }
         });
     } else {
+        const gradeInput = toggleButton.querySelector('.gradeInput');
+        const gradeValue = gradeInput ? (gradeInput.value || null) : null;
+
         res = await fetch(`{{ route("api.course-class-attendances.records.store", ["course_class_attendance" => "__ID__"]) }}`.replace('__ID__', attendanceId), {
             method: 'POST',
             credentials: 'same-origin',
@@ -456,6 +497,7 @@ attendanceRoster.addEventListener('click', async (e) => {
             },
             body: JSON.stringify({
                 student_id: studentId,
+                grade: gradeValue,
                 user_id: currentUserId
             })
         });
