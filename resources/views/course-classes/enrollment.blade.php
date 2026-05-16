@@ -64,7 +64,7 @@
                 <form id="adminEnrollmentForm" class="mt-6 grid gap-4 lg:grid-cols-5">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">{{ __('Nota') }}</label>
-                        <input type="number" min="0" max="100" step="0.01" name="grade" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm">
+                        <input type="number" min="0" max="100" step="0.01" name="grade" value="6" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">{{ __('Data de início') }}</label>

@@ -61,10 +61,11 @@ Route::name('api.')->group(function () {
         Route::apiResource('student-annotations', StudentAnnotationController::class);
         Route::apiResource('verification-logs', VerificationLogController::class)->only(['index', 'store', 'show', 'destroy']);
 
-        // performance report
-        Route::get('course-classes/{course_class}/performance-report', [PerformanceReportController::class, 'show'])->name('course-classes.performance-report');
-
         // admin user/role management endpoints
         Route::post('admin/users/{user}/toggle-admin', [\App\Http\Controllers\Admin\UserController::class, 'toggleAdmin'])->name('admin.users.toggle-admin');
     });
+        // performance report
+    Route::get('course-classes/{course_class}/performance-report', [PerformanceReportController::class, 'show'])->name('course-classes.performance-report');
+
+
 });

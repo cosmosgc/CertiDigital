@@ -9,7 +9,10 @@
                 <h1 class="mt-2 text-2xl font-bold text-gray-900">{{ __('Relatório de Desempenho') }}</h1>
                 <p class="text-sm text-gray-500" id="reportHeader">{{ $courseClass->course?->title }} &mdash; {{ $courseClass->name }}</p>
             </div>
-            <button id="printReport" class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm">{{ __('Imprimir') }}</button>
+            <div class="flex gap-2">
+                <a href="{{ route('course-classes.performance-report.export-xlsx', $courseClass) }}" class="inline-flex items-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm">{{ __('Exportar XLSX') }}</a>
+                <button id="printReport" class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm">{{ __('Imprimir') }}</button>
+            </div>
         </div>
 
         <div class="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
@@ -27,6 +30,7 @@ const token = document.querySelector('meta[name="csrf-token"]').getAttribute('co
 const courseClassId = @json($courseClassId);
 const container = document.getElementById('reportContainer');
 const printBtn = document.getElementById('printReport');
+const apiUrl = "{{ route('api.course-classes.performance-report', $courseClassId) }}";
 
 const TRIMESTER_LABELS = {
     1: '{{ __("1º Trimestre") }}',
@@ -79,7 +83,7 @@ function groupByTrimester(items, key) {
 }
 
 async function loadReport() {
-    const res = await fetch('/api/course-classes/' + courseClassId + '/performance-report', {
+    const res = await fetch(apiUrl, {
         credentials: 'same-origin',
         headers: { 'Accept': 'application/json' }
     });

@@ -26,6 +26,10 @@ class CourseClassAttendanceRecordController extends Controller
             'grade' => 'nullable|numeric|min:0|max:100',
         ]);
 
+        if (!isset($data['grade'])) {
+            $data['grade'] = 6;
+        }
+
         $enrollment = CourseEnrollment::where('course_class_id', $courseClassAttendance->course_class_id)
             ->where('student_id', $data['student_id'])
             ->first();
@@ -44,9 +48,7 @@ class CourseClassAttendanceRecordController extends Controller
             'student_id' => $data['student_id'],
         ]);
 
-        if (array_key_exists('grade', $data)) {
-            $record->update(['grade' => $data['grade']]);
-        }
+        $record->update(['grade' => $data['grade']]);
 
         $this->progressService->refresh($enrollment);
 
@@ -62,7 +64,8 @@ class CourseClassAttendanceRecordController extends Controller
             'grade' => 'nullable|numeric|min:0|max:100',
         ]);
 
-        $courseClassAttendanceRecord->update(['grade' => $data['grade'] ?? null]);
+        $grade = $data['grade'] ?? 6;
+        $courseClassAttendanceRecord->update(['grade' => $grade]);
 
         return response()->json($courseClassAttendanceRecord->load('student'), Response::HTTP_OK);
     }

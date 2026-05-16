@@ -55,7 +55,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-700">{{ __('Nota') }}</label>
-                        <input type="number" min="0" max="100" step="0.01" name="grade" class="mt-1 block w-full rounded-2xl border-slate-200 bg-white shadow-sm focus:border-emerald-400 focus:ring-emerald-400" />
+                        <input type="number" min="0" max="100" step="0.01" name="grade" value="6" class="mt-1 block w-full rounded-2xl border-slate-200 bg-white shadow-sm focus:border-emerald-400 focus:ring-emerald-400" />
                     </div>
                     <div class="flex flex-wrap gap-2">
                         <button type="submit" class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white">{{ __('Salvar matrícula') }}</button>

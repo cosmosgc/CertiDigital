@@ -62,6 +62,7 @@ Route::middleware('auth')->group(function () {
             return view('course-classes.attendance-report', compact('courseClass'));
         })->name('course-classes.attendance-report');
         Route::get('/course-classes/{courseClass}/performance-report', [PerformanceReportController::class, 'show'])->name('course-classes.performance-report');
+        Route::get('/course-classes/{courseClass}/performance-report/export-xlsx', [\App\Http\Controllers\ExportPerformanceReportController::class, 'export'])->name('course-classes.performance-report.export-xlsx');
         Route::view('/certificates', 'certificates.index')->name('certificates.index');
         Route::get('/financial/reports', [FinancialReportController::class, 'index'])->name('financial.reports');
         Route::post('/financial/reports/instructors/{instructor}/contract', [FinancialReportController::class, 'saveInstructorContract'])
