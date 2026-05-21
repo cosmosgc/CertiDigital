@@ -420,12 +420,7 @@ attendanceForm.addEventListener('submit', async (e) => {
     }
 });
 
-// Auto-save grade on blur
-document.addEventListener('blur', async (e) => {
-    if (isGuestMode) return;
-    const input = e.target.closest('.gradeInput');
-    if (!input) return;
-
+async function saveGrade(input) {
     const toggleButton = input.closest('.attendanceToggle');
     if (!toggleButton) return;
 
@@ -448,6 +443,15 @@ document.addEventListener('blur', async (e) => {
     if (!res.ok) {
         alert(@json(__('Erro ao salvar nota')));
     }
+}
+
+document.addEventListener('input', (e) => {
+    if (isGuestMode) return;
+    const input = e.target.closest('.gradeInput');
+    if (!input) return;
+
+    clearTimeout(input._gradeTimer);
+    input._gradeTimer = setTimeout(() => saveGrade(input), 500);
 });
 
 attendanceRoster.addEventListener('click', async (e) => {
