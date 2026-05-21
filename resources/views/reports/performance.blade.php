@@ -121,7 +121,7 @@ function renderReport(data) {
 
     // Per-trimester grade blocks
     for (const t of trimesterKeys) {
-        html += '<th class="border border-gray-300 p-1.5 text-center font-semibold bg-amber-50" colspan="10">' + TRIMESTER_LABELS[t] + ' — {{ __("Notas") }}</th>';
+        html += '<th class="border border-gray-300 p-1.5 text-center font-semibold bg-amber-50" colspan="13">' + TRIMESTER_LABELS[t] + ' — {{ __("Notas") }}</th>';
     }
 
     html += '</tr>';
@@ -150,6 +150,9 @@ function renderReport(data) {
 
     // Grade subheaders per trimester
     for (const t of trimesterKeys) {
+        html += '<th class="border border-gray-300 p-1 font-medium">Pres.</th>';
+        html += '<th class="border border-gray-300 p-1 font-medium">Falta</th>';
+        html += '<th class="border border-gray-300 p-1 font-medium">Média</th>';
         html += '<th class="border border-gray-300 p-1 font-medium">Média<br>Ativ</th>';
         html += '<th class="border border-gray-300 p-1 font-medium">Ativ 1</th>';
         html += '<th class="border border-gray-300 p-1 font-medium">Ativ 2</th>';
@@ -227,7 +230,13 @@ function renderReport(data) {
         // Per trimester grades
         for (const t of trimesterKeys) {
             const tg = tgByT[t] || {};
+            const tSum = summariesByT[t] || {};
 
+            html += '<td class="border border-gray-200 p-1 text-center">' + (tSum.present_count ?? 0) + '</td>';
+            html += '<td class="border border-gray-200 p-1 text-center">' + (tSum.absent_count ?? 0) + '</td>';
+            const attGrades = rowAtts.filter(a => a.trimester === t && a.grade != null);
+            const avgAttGrade = attGrades.length > 0 ? attGrades.reduce((s, a) => s + Number(a.grade), 0) / attGrades.length : null;
+            html += '<td class="border border-gray-200 p-1 text-center font-bold' + ((avgAttGrade ?? 0) >= 6 ? ' text-emerald-700' : ' text-rose-700') + '">' + (avgAttGrade !== null ? n(avgAttGrade) : '-') + '</td>';
             html += '<td class="border border-gray-200 p-1 text-center">' + n(tg.activities_average) + '</td>';
             html += '<td class="border border-gray-200 p-1 text-center">' + n(tg.activity_grade_1) + '</td>';
             html += '<td class="border border-gray-200 p-1 text-center">' + n(tg.activity_grade_2) + '</td>';
@@ -239,7 +248,6 @@ function renderReport(data) {
             html += '<td class="border border-gray-200 p-1 text-center font-bold ' + ((tg.final_grade ?? 0) >= 6 ? 'text-emerald-700' : 'text-rose-700') + '">' + n(tg.final_grade) + '</td>';
 
             // Trimester frequency
-            const tSum = summariesByT[t] || {};
             html += '<td class="border border-gray-200 p-1 text-center text-[10px]">' + pct(tSum.frequency_pct) + '</td>';
         }
 
@@ -278,7 +286,7 @@ function renderReport(data) {
             return tg ? Number(tg.final_grade) : null;
         }).filter(v => v !== null);
         const avg = grades.length > 0 ? grades.reduce((a, b) => a + b, 0) / grades.length : null;
-        html += '<td class="border border-gray-300 p-1 text-center font-bold" colspan="9">' + (avg !== null ? n(avg) : '-') + '</td>';
+        html += '<td class="border border-gray-300 p-1 text-center font-bold" colspan="12">' + (avg !== null ? n(avg) : '-') + '</td>';
         html += '<td class="border border-gray-300 p-1 text-center"></td>';
     }
 
