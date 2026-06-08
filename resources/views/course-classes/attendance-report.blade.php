@@ -42,9 +42,7 @@
         <section class="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-gray-200">
             <div id="printSection">
             <div class="flex flex-col gap-4 border-b border-gray-200 pb-4 print:border-b print:pb-3">
-                <h2 class="text-xl font-semibold text-gray-900">{{ __('Matriz de presença') }}</h2>
-                <p class="mt-1 text-sm text-gray-500">{{ __('Cada linha representa um aluno e cada coluna mostra a presença em uma sessão.') }}</p>
-                <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between print:hidden">
                     <div>
                         <label for="monthFilter" class="block text-sm font-medium text-gray-700">{{ __('Selecionar mês') }}</label>
                         <input type="month" id="monthFilter" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" value="{{ date('Y-m') }}">
@@ -82,19 +80,147 @@
 </div>
 
 <style>
+/* ── Screen table styles ── */
+#attendanceReportTable {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+}
+
+.att-report__head {
+    padding: 8px 10px;
+    background: #1e293b;
+    color: #fff;
+    font-weight: 600;
+    font-size: 12px;
+    text-align: left;
+    white-space: nowrap;
+    border-right: 1px solid #334155;
+}
+.att-report__head:last-child { border-right: none; }
+
+.att-report__head--student {
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    min-width: 150px;
+    border-right: 1px solid #475569;
+}
+
+.att-report__head--session {
+    min-width: 100px;
+    vertical-align: top;
+}
+
+.att-report__head--total {
+    min-width: 60px;
+    text-align: center;
+}
+
+.att-report__session-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+}
+.att-report__session-date {
+    font-size: 10px;
+    color: #94a3b8;
+    margin-top: 1px;
+}
+.att-report__session-stat {
+    font-size: 10px;
+    font-weight: 600;
+    margin-top: 2px;
+}
+
+.att-report__row:nth-child(even) {
+    background: #f8fafc;
+}
+
+.att-report__cell {
+    padding: 6px 8px;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: middle;
+}
+
+.att-report__cell--student {
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    background: inherit;
+    border-right: 1px solid #e2e8f0;
+    min-width: 160px;
+}
+
+.att-report__cell--status {
+    text-align: center;
+    min-width: 52px;
+}
+
+.att-report__student-link {
+    font-size: 12px;
+    font-weight: 500;
+    color: #1e293b;
+    text-decoration: none;
+}
+.att-report__student-link:hover {
+    color: #0e7490;
+}
+
+.att-report__empty {
+    padding: 24px;
+    text-align: center;
+    color: #94a3b8;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+/* ── Badges ── */
+.att-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    padding: 2px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.4;
+    min-width: 26px;
+}
+.att-badge--present {
+    background: #d1fae5;
+    color: #065f46;
+}
+.att-badge--absent {
+    background: #f1f5f9;
+    color: #64748b;
+}
+.att-badge--high {
+    background: #d1fae5;
+    color: #065f46;
+}
+.att-badge--mid {
+    background: #fef3c7;
+    color: #92400e;
+}
+.att-badge--low {
+    background: #ffe4e6;
+    color: #9f1239;
+}
+
+/* ── Print styles ── */
 @media print {
-    body {
-        background: #fff !important;
+    @page {
+        size: A4;
+        margin: 8mm;
     }
 
-    body * {
-        visibility: hidden;
-    }
+    body { background: #fff !important; }
+
+    body * { visibility: hidden; }
 
     #printSection,
-    #printSection * {
-        visibility: visible;
-    }
+    #printSection * { visibility: visible; }
 
     #printSection {
         position: absolute;
@@ -103,22 +229,121 @@
         width: 100%;
     }
 
-    #printButton,
-    #refreshButton {
+    header, nav, #printButton, #refreshButton {
         display: none !important;
     }
 
     #attendanceReportTable {
-        font-size: 12px;
+        font-size: 9px;
+        border-collapse: collapse;
+        width: 100%;
     }
 
-    #attendanceReportTable th,
-    #attendanceReportTable td {
-        page-break-inside: avoid;
+    #attendanceReportTable .att-report__head {
+        padding: 4px 6px !important;
+        background: #334155 !important;
+        color: #fff !important;
+        font-size: 9px !important;
+        border: 0.5px solid #475569 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    #attendanceReportTable .att-report__head--student {
+        position: static !important;
+    }
+
+    #attendanceReportTable .att-report__session-name {
+        font-size: 9px !important;
+    }
+    #attendanceReportTable .att-report__session-date {
+        font-size: 8px !important;
+    }
+    #attendanceReportTable .att-report__session-stat {
+        font-size: 8px !important;
+    }
+
+    #attendanceReportTable .att-report__cell {
+        padding: 3px 5px !important;
+        border: 0.5px solid #94a3b8 !important;
+        font-size: 9px !important;
+    }
+
+    #attendanceReportTable .att-report__cell--student {
+        position: static !important;
+        background: #fff !important;
+    }
+
+    #attendanceReportTable .att-report__row:nth-child(even) .att-report__cell {
+        background: #f8fafc !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .att-report__student-link {
+        font-size: 9px !important;
+        color: #000 !important;
+    }
+
+    .att-badge {
+        padding: 1px 6px !important;
+        font-size: 8px !important;
+        min-width: 18px !important;
+        border: 0.5px solid currentColor !important;
+    }
+
+    .att-badge--present {
+        background: #d1fae5 !important;
+        color: #065f46 !important;
+        border-color: #059669 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    .att-badge--absent {
+        background: #f1f5f9 !important;
+        color: #64748b !important;
+        border-color: #94a3b8 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    .att-badge--high {
+        background: #d1fae5 !important;
+        color: #065f46 !important;
+        border-color: #059669 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    .att-badge--mid {
+        background: #fef3c7 !important;
+        color: #92400e !important;
+        border-color: #d97706 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    .att-badge--low {
+        background: #ffe4e6 !important;
+        color: #9f1239 !important;
+        border-color: #e11d48 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
 
     #printSummary {
         grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 3px;
+    }
+
+    #printSummary > div {
+        padding: 3px 6px !important;
+    }
+
+    #printSummary p {
+        margin-top: 1px !important;
+        font-size: 8px;
+    }
+
+    .rounded-2xl {
+        box-shadow: none !important;
     }
 }
 </style>
@@ -248,29 +473,27 @@ function renderReport(data) {
 
     attendanceReportHead.innerHTML = `
         <tr>
-            <th class="sticky left-0 z-10 min-w-[220px] bg-white p-3 text-left text-sm font-semibold text-gray-700 ring-1 ring-gray-200">{{ __('Aluno') }}</th>
+            <th class="att-report__head att-report__head--student">{{ __('Aluno') }}</th>
             ${attendances.map(attendance => {
                 const sessionPresentCount = attendanceRecordSets.get(String(attendance.id))?.size || 0;
                 const sessionRatio = getAttendanceRatio(sessionPresentCount, enrollments.length);
 
                 return `
-                <th class="min-w-[170px] bg-white p-3 text-left text-sm font-semibold text-gray-700 ring-1 ring-gray-200 align-top">
-                    <a href="${attendanceShowBaseUrl.replace('__ATTENDANCE__', attendance.id)}" class="hover:text-cyan-700">
-                        ${attendance.name}
-                    </a>
-                    <div class="mt-1 text-xs font-normal text-gray-500">${formatDateInputValue(attendance.attendance_date)} • ${formatHours(attendance.duration_hours)}</div>
-                    <div class="mt-2 text-xs font-semibold text-emerald-700">${sessionRatio.presentPercent}% {{ __('presença') }} • ${sessionPresentCount}/${enrollments.length} {{ __('presentes') }}</div>
+                <th class="att-report__head att-report__head--session">
+                    <div class="att-report__session-name">${attendance.name}</div>
+                    <div class="att-report__session-date">${formatDateInputValue(attendance.attendance_date)}</div>
+                    <div class="att-report__session-stat" style="color:#059669">${sessionRatio.presentPercent}% &bull; ${sessionPresentCount}/${enrollments.length}</div>
                 </th>
             `;
             }).join('')}
-            <th class="bg-white p-3 text-left text-sm font-semibold text-gray-700 ring-1 ring-gray-200">{{ __('Total') }}</th>
+            <th class="att-report__head att-report__head--total">{{ __('Total') }}</th>
         </tr>
     `;
 
     if (!enrollments.length) {
         attendanceReportBody.innerHTML = `
             <tr>
-                <td colspan="${attendances.length + 2}" class="p-8 text-center text-gray-500 ring-1 ring-gray-200">
+                <td colspan="${attendances.length + 2}" class="att-report__empty">
                     {{ __('Nenhum aluno ativo para o mês selecionado.') }}
                 </td>
             </tr>
@@ -287,9 +510,9 @@ function renderReport(data) {
         const studentAttendanceRatio = getAttendanceRatio(presentCountByStudent, attendances.length);
 
         return `
-            <tr>
-                <td class="sticky left-0 z-10 bg-white p-3 align-top ring-1 ring-gray-200">
-                    <a href="${enrollmentShowBaseUrl.replace('__ENROLLMENT__', enrollment.id)}" class="font-medium text-gray-900 hover:text-cyan-700">
+            <tr class="att-report__row">
+                <td class="att-report__cell att-report__cell--student">
+                    <a href="${enrollmentShowBaseUrl.replace('__ENROLLMENT__', enrollment.id)}" class="att-report__student-link">
                         ${enrollment.student?.full_name || ''}
                     </a>
                 </td>
@@ -297,17 +520,18 @@ function renderReport(data) {
                     const presentStudentIds = attendanceRecordSets.get(String(attendance.id)) || new Set();
                     const present = presentStudentIds.has(String(enrollment.student_id));
 
+                    const statusClass = present ? 'att-badge--present' : 'att-badge--absent';
+                    const label = present ? @json(__('P')) : @json(__('A'));
+
                     return `
-                        <td class="p-3 text-center ring-1 ring-gray-200">
-                            <span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold ${present ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}">
-                                ${present ? @json(__('Presente')) : @json(__('Ausente'))}
-                            </span>
+                        <td class="att-report__cell att-report__cell--status">
+                            <span class="att-badge ${statusClass}">${label}</span>
                         </td>
                     `;
                 }).join('')}
-                <td class="p-3 text-center ring-1 ring-gray-200">
-                    <span class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${studentAttendanceRatio.presentPercent >= 75 ? 'bg-emerald-100 text-emerald-700' : studentAttendanceRatio.presentPercent >= 50 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'}">
-                        ${studentAttendanceRatio.presentPercent}% • ${presentCountByStudent}/${attendances.length}
+                <td class="att-report__cell att-report__cell--status">
+                    <span class="att-badge ${studentAttendanceRatio.presentPercent >= 75 ? 'att-badge--high' : studentAttendanceRatio.presentPercent >= 50 ? 'att-badge--mid' : 'att-badge--low'}">
+                        ${studentAttendanceRatio.presentPercent}%
                     </span>
                 </td>
             </tr>

@@ -12,9 +12,18 @@ class StudentController extends Controller
     /**
      * Display a listing of students with related courses and certificates.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $students = Student::with(['courses', 'certificates'])->paginate(15);
+        $query = Student::with(['courses', 'certificates']);
+
+        if ($search = $request->query('search')) {
+            $search = '%' . $search . '%';
+            $query->where('full_name', 'like', $search)
+                ->orWhere('email', 'like', $search)
+                ->orWhere('document_id', 'like', $search);
+        }
+
+        $students = $query->paginate(15);
 
         return response()->json($students, Response::HTTP_OK);
     }
@@ -26,7 +35,7 @@ class StudentController extends Controller
     {
         $data = $request->validate([
             'full_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:students,email',
+            'email' => 'nullable|email|unique:students,email',
             'document_id' => 'nullable|string|max:255',
             'birth_date' => 'nullable|date',
         ]);
@@ -71,7 +80,7 @@ class StudentController extends Controller
     {
         $data = $request->validate([
             'full_name' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|email|unique:students,email,' . $student->id,
+            'email' => 'nullable|email|unique:students,email,' . $student->id,
             'document_id' => 'nullable|string|max:255',
             'birth_date' => 'nullable|date',
         ]);

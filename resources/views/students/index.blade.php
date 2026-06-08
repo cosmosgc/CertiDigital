@@ -158,7 +158,7 @@ studentForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const payload = {
         full_name: studentForm.full_name.value,
-        email: studentForm.email.value,
+        email: studentForm.email.value || null,
         document_id: studentForm.document_id.value || null,
         birth_date: studentForm.birth_date.value || null,
         user_id: currentUserId,

@@ -76,9 +76,44 @@
         </section>
 
         <section class="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-gray-200">
-            <div>
-                <h2 class="text-xl font-semibold text-gray-900">{{ __('Detalhes e acompanhamento') }}</h2>
-                <p class="mt-1 text-sm text-gray-500">{{ __('Lista completa com contato, horas cumpridas, nota e status de conclusão.') }}</p>
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-900">{{ __('Detalhes e acompanhamento') }}</h2>
+                    <p class="mt-1 text-sm text-gray-500">{{ __('Lista completa com contato, horas cumpridas, nota e status de conclusão.') }}</p>
+                </div>
+                <button id="showAddStudent" class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white whitespace-nowrap">{{ __('Adicionar aluno') }}</button>
+            </div>
+
+            <div id="addStudentContainer" class="mt-4 hidden">
+                <div class="rounded-2xl border border-dashed border-indigo-300 bg-indigo-50/50 p-5">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">{{ __('Buscar aluno existente') }}</label>
+                            <input id="studentSearchInput" type="text" autocomplete="off" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" placeholder="{{ __('Digite nome, e-mail ou documento') }}">
+                        </div>
+                        <div id="studentSearchResults" class="max-h-48 space-y-2 overflow-y-auto rounded-xl bg-white p-2 ring-1 ring-gray-200"></div>
+                        <button id="toggleQuickCreate" type="button" class="hidden text-sm font-medium text-indigo-600 hover:text-indigo-800">{{ __('Ou crie um novo aluno') }}</button>
+                        <div id="quickCreateContainer" class="hidden space-y-3 rounded-xl bg-white p-4 ring-1 ring-indigo-200">
+                            <p class="text-sm font-semibold text-indigo-700">{{ __('Criar novo aluno') }}</p>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">{{ __('Nome completo') }} *</label>
+                                <input id="quickName" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">{{ __('E-mail') }}</label>
+                                <input id="quickEmail" type="email" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">{{ __('Documento') }}</label>
+                                <input id="quickDocumentId" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
+                            </div>
+                            <button id="quickCreateBtn" class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">{{ __('Criar e matricular') }}</button>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex gap-2">
+                        <button id="cancelAddStudent" type="button" class="rounded-xl bg-white px-4 py-2 text-sm text-gray-700 ring-1 ring-gray-300">{{ __('Cancelar') }}</button>
+                    </div>
+                </div>
             </div>
 
             <div class="bg-white mt-6 overflow-hidden rounded-2xl border border-gray-200">
@@ -99,6 +134,30 @@
         </section>
     </div>
 </div>
+
+<style>
+#studentSearchResults:empty::before {
+    content: "{{ __('Digite para buscar alunos existentes.') }}";
+    display: block;
+    padding: 0.9rem 1rem;
+    color: rgb(107 114 128);
+    font-size: 0.875rem;
+}
+.student-search-result {
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid rgb(229 231 235);
+    background: white;
+    padding: 0.7rem 1rem;
+    text-align: left;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+.student-search-result:hover {
+    border-color: rgb(99 102 241);
+    background: rgb(238 242 255);
+}
+</style>
 
 <script>
 const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
@@ -123,6 +182,7 @@ const attendanceShowBaseUrl = @json(route('course-class-attendances.show', ['cou
 const enrollmentShowBaseUrl = @json(route('course-class-enrollments.show', ['courseClass' => $courseClass, 'courseEnrollment' => '__ENROLLMENT__']));
 const manageClassUrl = @json(route('course-classes.manage', $courseClass));
 const defaultIssueDate = @json(now()->toDateString());
+let classData = null;
 let detailsTable = null;
 
 function formatHours(value) {
@@ -150,6 +210,7 @@ async function fetchClassData() {
         }
 
         const data = await res.json();
+        classData = data;
         renderClass(data);
     } catch (error) {
         console.error('Failed to fetch class data:', error);
@@ -350,6 +411,196 @@ attendanceCreateForm.addEventListener('submit', async (e) => {
         const error = await res.json().catch(() => null);
         alert(error?.message || @json(__('Erro ao criar sessão')));
     }
+});
+
+// --- Add student to class ---
+const showAddStudentBtn = document.getElementById('showAddStudent');
+const addStudentContainer = document.getElementById('addStudentContainer');
+const cancelAddStudentBtn = document.getElementById('cancelAddStudent');
+const studentSearchInput = document.getElementById('studentSearchInput');
+const studentSearchResults = document.getElementById('studentSearchResults');
+const toggleQuickCreate = document.getElementById('toggleQuickCreate');
+const quickCreateContainer = document.getElementById('quickCreateContainer');
+const quickName = document.getElementById('quickName');
+const quickEmail = document.getElementById('quickEmail');
+const quickDocumentId = document.getElementById('quickDocumentId');
+const quickCreateBtn = document.getElementById('quickCreateBtn');
+let studentSearchTimeout = null;
+
+async function enrollStudent(studentId, studentName) {
+    if (!studentId) return;
+    const confirmMsg = @json(__('Matricular')) + ' "' + studentName + '" ' + @json(__('nesta turma?'));
+    if (!confirm(confirmMsg)) return;
+
+    const payload = {
+        student_id: studentId,
+        course_id: classData?.course_id,
+        course_class_id: classId,
+        grade: 6,
+        user_id: currentUserId
+    };
+
+    const res = await fetch('{{ route("api.course-enrollments.store") }}', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token,
+            'X-User-Id': currentUserId,
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+        addStudentContainer.classList.add('hidden');
+        studentSearchInput.value = '';
+        studentSearchResults.innerHTML = '';
+        await fetchClassData();
+    } else {
+        const error = await res.json().catch(() => null);
+        alert(error?.message || @json(__('Erro ao matricular aluno')));
+    }
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
+function renderStudentResults(query) {
+    const enrolledIds = new Set((classData?.enrollments || []).map(e => String(e.student_id)));
+    const items = studentSearchResults._allData || [];
+    const filtered = query
+        ? items.filter(s => {
+            const haystack = `${s.full_name || ''} ${s.email || ''} ${s.document_id || ''}`.toLowerCase();
+            return haystack.includes(query.toLowerCase());
+          })
+        : items;
+    const available = filtered.filter(s => !enrolledIds.has(String(s.id)));
+
+    if (!available.length) {
+        if (!items.length && !query) {
+            studentSearchResults.innerHTML = '';
+        } else {
+            studentSearchResults.innerHTML = `
+                <div class="rounded-xl border border-dashed border-gray-300 bg-white px-4 py-3 text-sm text-gray-500">
+                    {{ __('Nenhum aluno disponível encontrado.') }}
+                </div>
+            `;
+        }
+        toggleQuickCreate.classList.remove('hidden');
+        return;
+    }
+
+    toggleQuickCreate.classList.add('hidden');
+    studentSearchResults.innerHTML = available.map(s => `
+        <button type="button" class="student-search-result" data-id="${s.id}" data-name="${escapeHtml(s.full_name || '')}">
+            <div class="text-sm font-semibold text-gray-900">${escapeHtml(s.full_name || '')}</div>
+            <div class="mt-1 text-xs text-gray-500">${escapeHtml(s.email || '')}</div>
+        </button>
+    `).join('');
+}
+
+async function searchStudents(query) {
+    if (query.length < 1) {
+        studentSearchResults.innerHTML = '';
+        studentSearchResults._allData = [];
+        toggleQuickCreate.classList.add('hidden');
+        quickCreateContainer.classList.add('hidden');
+        return;
+    }
+
+    const res = await fetch(`{{ route("api.students.index") }}?search=${encodeURIComponent(query)}&per_page=10`, {
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json' }
+    });
+
+    if (!res.ok) return;
+
+    const data = await res.json();
+    studentSearchResults._allData = data.data || [];
+    renderStudentResults(query);
+}
+
+showAddStudentBtn.addEventListener('click', () => {
+    addStudentContainer.classList.remove('hidden');
+    studentSearchInput.focus();
+});
+
+cancelAddStudentBtn.addEventListener('click', () => {
+    addStudentContainer.classList.add('hidden');
+    studentSearchInput.value = '';
+    studentSearchResults.innerHTML = '';
+    studentSearchResults._allData = [];
+    quickCreateContainer.classList.add('hidden');
+    toggleQuickCreate.classList.add('hidden');
+});
+
+studentSearchInput.addEventListener('input', () => {
+    clearTimeout(studentSearchTimeout);
+    const query = studentSearchInput.value.trim();
+    if (!query) {
+        studentSearchResults.innerHTML = '';
+        studentSearchResults._allData = [];
+        toggleQuickCreate.classList.add('hidden');
+        quickCreateContainer.classList.add('hidden');
+        return;
+    }
+    studentSearchTimeout = setTimeout(() => searchStudents(query), 300);
+});
+
+studentSearchResults.addEventListener('click', (e) => {
+    const btn = e.target.closest('.student-search-result');
+    if (!btn) return;
+    enrollStudent(btn.dataset.id, btn.dataset.name);
+});
+
+toggleQuickCreate.addEventListener('click', () => {
+    quickCreateContainer.classList.toggle('hidden');
+});
+
+quickCreateBtn.addEventListener('click', async () => {
+    const name = quickName.value.trim();
+    if (!name) {
+        alert(@json(__('Informe o nome do aluno.')));
+        return;
+    }
+
+    const payload = {
+        full_name: name,
+        email: quickEmail.value.trim() || null,
+        document_id: quickDocumentId.value.trim() || null,
+    };
+
+    const res = await fetch('{{ route("api.students.store") }}', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token,
+            'X-User-Id': currentUserId,
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => null);
+        alert(error?.message || @json(__('Erro ao criar aluno')));
+        return;
+    }
+
+    const student = await res.json();
+    quickName.value = '';
+    quickEmail.value = '';
+    quickDocumentId.value = '';
+    quickCreateContainer.classList.add('hidden');
+    await enrollStudent(student.id, student.full_name);
 });
 
 refreshButton.addEventListener('click', fetchClassData);
