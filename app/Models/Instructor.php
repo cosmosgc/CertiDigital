@@ -34,4 +34,9 @@ class Instructor extends Model
     {
         return $this->hasMany(InstructorContract::class)->orderByDesc('starts_at');
     }
+
+    public function payments()
+    {
+        return $this->hasMany(InstructorPayment::class);
+    }
 }

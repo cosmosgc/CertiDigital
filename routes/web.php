@@ -67,6 +67,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/financial/reports', [FinancialReportController::class, 'index'])->name('financial.reports');
         Route::post('/financial/reports/instructors/{instructor}/contract', [FinancialReportController::class, 'saveInstructorContract'])
             ->name('financial.reports.instructor-contract.save');
+        Route::post('/financial/reports/instructors/{instructor}/pay', [FinancialReportController::class, 'savePayment'])
+            ->name('financial.reports.instructor-pay');
 
         // Certificate settings routes
         Route::get('/certificate-settings', [CertificateSettingController::class, 'edit'])->name('certificate-settings.edit');

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CourseClassAttendance;
 use App\Models\Instructor;
 use App\Models\InstructorContract;
+use App\Models\InstructorPayment;
 use App\Models\StudentBilling;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -66,9 +67,21 @@ class FinancialReportController extends Controller
                 ];
             });
 
-        $instructorTotal = (float) $instructorRows->sum('earnings');
+		$instructorTotal = (float) $instructorRows->sum('earnings');
 
-        $billingsForMonth = StudentBilling::with(['student', 'courseClass'])
+		$payments = InstructorPayment::whereBetween('reference_month', [$monthStart->toDateString(), $monthEnd->toDateString()])
+			->get()
+			->keyBy('instructor_id');
+
+		$instructorRows = $instructorRows->map(function ($row) use ($payments) {
+			$payment = $payments->get($row['instructor']->id);
+			$row['payment'] = $payment;
+			$row['payment_status'] = $payment && $payment->paid_at ? 'paid' : 'pending';
+			$row['paid_amount'] = $payment ? (float) $payment->amount : 0;
+			return $row;
+		});
+
+		$billingsForMonth = StudentBilling::with(['student', 'courseClass'])
             ->whereBetween('reference_month', [$monthStart->toDateString(), $monthEnd->toDateString()])
             ->get();
 
@@ -275,6 +288,40 @@ class FinancialReportController extends Controller
             }
         }
 
-        return round($sum, 2);
-    }
+		return round($sum, 2);
+	}
+
+	public function savePayment(Request $request, Instructor $instructor)
+	{
+		$validated = $request->validate([
+			'amount' => ['required', 'numeric', 'min:0'],
+			'reference_month' => ['required', 'string'],
+			'paid' => ['nullable', 'boolean'],
+			'notes' => ['nullable', 'string'],
+		]);
+
+		$referenceMonth = $validated['reference_month'];
+
+		try {
+			$monthDate = Carbon::createFromFormat('Y-m', $referenceMonth)->startOfMonth();
+		} catch (\Throwable $e) {
+			$monthDate = now()->startOfMonth();
+		}
+
+		$payment = InstructorPayment::firstOrNew([
+			'instructor_id' => $instructor->id,
+			'reference_month' => $monthDate->toDateString(),
+		]);
+
+		$payment->amount = (float) $validated['amount'];
+		$payment->paid_at = ! empty($validated['paid']) ? now() : null;
+		$payment->notes = $validated['notes'] ?? null;
+		$payment->save();
+
+		return redirect()
+			->route('financial.reports', ['month' => $referenceMonth])
+			->with('status', $payment->paid_at
+				? __('Pagamento do instrutor registrado como pago.')
+				: __('Registro de pagamento do instrutor atualizado.'));
+	}
 }
