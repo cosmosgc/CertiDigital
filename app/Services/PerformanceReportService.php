@@ -47,7 +47,7 @@ class PerformanceReportService
                 'trimester_grades' => $this->buildTrimesterGradeBlocks($trimesterGrades),
                 'overall_frequency' => $overallFrequency,
             ];
-        });
+        })->sortBy('full_name')->values();
 
         return [
             'class' => [

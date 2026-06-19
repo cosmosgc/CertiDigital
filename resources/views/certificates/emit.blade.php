@@ -8,7 +8,11 @@
         <form id="emitForm" class="mt-4 space-y-4">
             <div>
                 <label class="block text-sm font-medium">{{ __('Aluno') }}</label>
-                <select name="student_id" id="studentSelect" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm "></select>
+                <div class="relative mt-1" id="studentAutocomplete">
+                    <input type="text" id="studentSearch" autocomplete="off" placeholder="{{ __('Digite para buscar um aluno...') }}" class="block w-full rounded-md border-gray-300 shadow-sm ">
+                    <input type="hidden" name="student_id" id="studentId">
+                    <div id="studentDropdown" class="absolute z-50 mt-1 hidden w-full rounded-md border border-gray-200 bg-white shadow-lg"></div>
+                </div>
             </div>
             <div>
                 <label class="block text-sm font-medium">{{ __('Instrutor') }}</label>
@@ -63,7 +67,9 @@
 <script>
 const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 const currentUserId = @json(auth()->id());
-const studentSelect = document.getElementById('studentSelect');
+const studentSearch = document.getElementById('studentSearch');
+const studentIdInput = document.getElementById('studentId');
+const studentDropdown = document.getElementById('studentDropdown');
 const instructorSelect = document.querySelector('select[name="instructor_id"]');
 const courseSelect = document.getElementById('courseSelect');
 const emitForm = document.getElementById('emitForm');
@@ -80,10 +86,75 @@ const presetStartDate = @json(request('start_date'));
 const presetEndDate = @json(request('end_date'));
 const presetStatus = @json(request('status', 'valid'));
 const presetInstructorId = @json(request('instructor_id'));
+let selectedStudent = null;
+let searchTimeout = null;
+
+function selectStudent(student) {
+    selectedStudent = student;
+    studentIdInput.value = student.id;
+    studentSearch.value = student.full_name;
+    studentDropdown.classList.add('hidden');
+}
+
+function clearStudent() {
+    selectedStudent = null;
+    studentIdInput.value = '';
+}
+
+function renderDropdown(students) {
+    if (!students.length) {
+        studentDropdown.classList.add('hidden');
+        return;
+    }
+    studentDropdown.innerHTML = students.map(s =>
+        `<button type="button" class="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none" data-id="${s.id}" data-name="${s.full_name.replace(/"/g, '&quot;')}">${s.full_name}</button>`
+    ).join('');
+    studentDropdown.classList.remove('hidden');
+}
+
+async function searchStudents(query) {
+    if (!query || query.length < 1) {
+        studentDropdown.classList.add('hidden');
+        return;
+    }
+    const res = await fetch(`{{ route("api.students.index") }}?search=${encodeURIComponent(query)}&per_page=50`);
+    const json = await res.json();
+    renderDropdown(json.data || json);
+}
+
+studentSearch.addEventListener('input', function () {
+    clearStudent();
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => searchStudents(this.value), 250);
+});
+
+studentSearch.addEventListener('blur', function () {
+    setTimeout(() => studentDropdown.classList.add('hidden'), 200);
+});
+
+studentSearch.addEventListener('focus', function () {
+    if (this.value.length >= 1 && studentDropdown.children.length) {
+        studentDropdown.classList.remove('hidden');
+    }
+});
+
+studentDropdown.addEventListener('mousedown', function (e) {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    selectStudent({ id: btn.dataset.id, full_name: btn.dataset.name });
+});
+
+studentDropdown.addEventListener('click', function (e) {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    selectStudent({ id: btn.dataset.id, full_name: btn.dataset.name });
+});
 
 function applyPresets() {
     if (presetStudentId) {
-        studentSelect.value = String(presetStudentId);
+        fetch(`{{ route("api.students.show", ["student" => "__ID__"]) }}`.replace('__ID__', presetStudentId))
+            .then(r => r.ok ? r.json() : null)
+            .then(student => { if (student) selectStudent(student); });
     }
 
     if (presetCourseId) {
@@ -112,12 +183,10 @@ function applyPresets() {
 }
 
 async function fetchChoices() {
-    const [studentsRes, coursesRes, instructorsRes] = await Promise.all([fetch('{{ route("api.students.index") }}'), fetch('{{ route("api.courses.index") }}'), fetch('{{ route("api.instructors.index") }}')]);
-    const students = (await studentsRes.json()).data || (await studentsRes.json());
+    const [coursesRes, instructorsRes] = await Promise.all([fetch('{{ route("api.courses.index") }}'), fetch('{{ route("api.instructors.index") }}')]);
     const courses = (await coursesRes.json()).data || (await coursesRes.json());
     const instructors = (await instructorsRes.json()).data || (await instructorsRes.json());
 
-    studentSelect.innerHTML = '<option value="">' + @json(__('Escolha um aluno')) + '</option>' + (students || []).map(s => `<option value="${s.id}">${s.full_name}</option>`).join('');
     courseSelect.innerHTML = '<option value="">' + @json(__('Escolha um curso')) + '</option>' + (courses || []).map(c => `<option value="${c.id}">${c.title}</option>`).join('');
     instructorSelect.innerHTML = '<option value="">' + @json(__('Escolha um instrutor')) + '</option>' + (instructors || []).map(i => `<option value="${i.id}">${i.full_name}</option>`).join('');
     applyPresets();
@@ -131,7 +200,7 @@ emitForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const payload = {
         certificate_code: generateCode(),
-        student_id: emitForm.student_id.value,
+        student_id: studentIdInput.value,
         instructor_id: emitForm.instructor_id.value,
         course_id: emitForm.course_id.value,
         issue_date: emitForm.issue_date.value || null,

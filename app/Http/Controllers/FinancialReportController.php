@@ -81,6 +81,9 @@ class FinancialReportController extends Controller
 			return $row;
 		});
 
+		$instructorPaidTotal = (float) $instructorRows->sum('paid_amount');
+		$instructorPendingTotal = max($instructorTotal - $instructorPaidTotal, 0);
+
 		$billingsForMonth = StudentBilling::with(['student', 'courseClass'])
             ->whereBetween('reference_month', [$monthStart->toDateString(), $monthEnd->toDateString()])
             ->get();
@@ -131,9 +134,13 @@ class FinancialReportController extends Controller
             ->filter(fn (StudentBilling $billing) => $billing->due_date && $billing->due_date->isPast())
             ->sum('amount');
 
-        $rangeInstructorTotal = $this->calculateInstructorTotalForPeriod($rangeStart, $rangeEnd);
+		$rangeInstructorTotal = $this->calculateInstructorTotalForPeriod($rangeStart, $rangeEnd);
 
-        $rangeLabels = [];
+		$rangePayments = InstructorPayment::whereBetween('reference_month', [$rangeStart->toDateString(), $rangeEnd->toDateString()])->get();
+		$rangeInstructorPaidTotal = (float) $rangePayments->where('paid_at', '!=', null)->sum('amount');
+		$rangeInstructorPendingTotal = max($rangeInstructorTotal - $rangeInstructorPaidTotal, 0);
+
+		$rangeLabels = [];
         $rangeBillingValues = [];
         $rangeInstructorValues = [];
 
@@ -163,10 +170,12 @@ class FinancialReportController extends Controller
             $monthlyInstructorValues[] = $this->calculateInstructorTotalForPeriod($start, $end);
         }
 
-        return view('financial.reports', [
-            'referenceMonth' => $referenceMonth,
-            'instructorRows' => $instructorRows,
-            'instructorTotal' => $instructorTotal,
+		return view('financial.reports', [
+			'referenceMonth' => $referenceMonth,
+			'instructorRows' => $instructorRows,
+			'instructorTotal' => $instructorTotal,
+			'instructorPaidTotal' => $instructorPaidTotal,
+			'instructorPendingTotal' => $instructorPendingTotal,
             'billingTotal' => $billingTotal,
             'billingPaid' => $billingPaid,
             'billingPending' => $billingPending,
@@ -181,8 +190,10 @@ class FinancialReportController extends Controller
             'rangeBillingPaid' => $rangeBillingPaid,
             'rangeBillingPending' => $rangeBillingPending,
             'rangeBillingOverdue' => $rangeBillingOverdue,
-            'rangeInstructorTotal' => $rangeInstructorTotal,
-            'rangeLabels' => $rangeLabels,
+			'rangeInstructorTotal' => $rangeInstructorTotal,
+			'rangeInstructorPaidTotal' => $rangeInstructorPaidTotal,
+			'rangeInstructorPendingTotal' => $rangeInstructorPendingTotal,
+			'rangeLabels' => $rangeLabels,
             'rangeBillingValues' => $rangeBillingValues,
             'rangeInstructorValues' => $rangeInstructorValues,
         ]);
@@ -293,11 +304,27 @@ class FinancialReportController extends Controller
 
 	public function savePayment(Request $request, Instructor $instructor)
 	{
+		if ($request->has('remove')) {
+			$referenceMonth = $request->input('reference_month', now()->format('Y-m'));
+			try {
+				$monthDate = Carbon::createFromFormat('Y-m', $referenceMonth)->startOfMonth();
+			} catch (\Throwable $e) {
+				$monthDate = now()->startOfMonth();
+			}
+
+			InstructorPayment::where('instructor_id', $instructor->id)
+				->where('reference_month', $monthDate->toDateString())
+				->delete();
+
+			return redirect()
+				->route('financial.reports', ['month' => $referenceMonth])
+				->with('status', __('Pagamento do instrutor removido.'));
+		}
+
 		$validated = $request->validate([
 			'amount' => ['required', 'numeric', 'min:0'],
 			'reference_month' => ['required', 'string'],
 			'paid' => ['nullable', 'boolean'],
-			'notes' => ['nullable', 'string'],
 		]);
 
 		$referenceMonth = $validated['reference_month'];
@@ -308,14 +335,25 @@ class FinancialReportController extends Controller
 			$monthDate = now()->startOfMonth();
 		}
 
+		$amount = (float) $validated['amount'];
+
+		if ($amount <= 0 && ! $request->has('paid')) {
+			InstructorPayment::where('instructor_id', $instructor->id)
+				->where('reference_month', $monthDate->toDateString())
+				->delete();
+
+			return redirect()
+				->route('financial.reports', ['month' => $referenceMonth])
+				->with('status', __('Registro de pagamento removido (valor zerado).'));
+		}
+
 		$payment = InstructorPayment::firstOrNew([
 			'instructor_id' => $instructor->id,
 			'reference_month' => $monthDate->toDateString(),
 		]);
 
-		$payment->amount = (float) $validated['amount'];
+		$payment->amount = $amount;
 		$payment->paid_at = ! empty($validated['paid']) ? now() : null;
-		$payment->notes = $validated['notes'] ?? null;
 		$payment->save();
 
 		return redirect()

@@ -49,7 +49,7 @@
                     </div>
                     <button id="applyMonthFilter" type="button" class="rounded-xl bg-cyan-600 px-4 py-2 text-sm font-medium text-white">{{ __('Aplicar filtro') }}</button>
                 </div>
-                <div id="printSummary" class="grid gap-3 md:grid-cols-4">
+                <div id="printSummary" class="grid gap-3 md:grid-cols-5">
                     <div class="rounded-2xl bg-gray-50 p-4 ring-1 ring-gray-200">
                         <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{{ __('Curso') }}</p>
                         <p id="printCourseTitle" class="mt-2 text-sm font-semibold text-gray-900"></p>
@@ -57,6 +57,10 @@
                     <div class="rounded-2xl bg-gray-50 p-4 ring-1 ring-gray-200">
                         <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{{ __('Alunos') }}</p>
                         <p id="printStudentCount" class="mt-2 text-sm font-semibold text-gray-900"></p>
+                    </div>
+                    <div class="rounded-2xl bg-gray-50 p-4 ring-1 ring-gray-200">
+                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{{ __('Turma') }}</p>
+                        <p id="printClassName" class="mt-2 text-sm font-semibold text-gray-900"></p>
                     </div>
                     <div class="rounded-2xl bg-gray-50 p-4 ring-1 ring-gray-200">
                         <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{{ __('Sessões') }}</p>
@@ -90,13 +94,12 @@
 
 .att-report__head {
     padding: 8px 10px;
-    background: #1e293b;
-    color: #fff;
-    font-weight: 600;
+    color: #111827;
+    font-weight: 700;
     font-size: 12px;
     text-align: left;
     white-space: nowrap;
-    border-right: 1px solid #334155;
+    border: 1px solid #9ca3af;
 }
 .att-report__head:last-child { border-right: none; }
 
@@ -120,12 +123,12 @@
 
 .att-report__session-name {
     font-size: 12px;
-    font-weight: 600;
-    color: #fff;
+    font-weight: 700;
+    color: #111827;
 }
 .att-report__session-date {
     font-size: 10px;
-    color: #94a3b8;
+    color: #4b5563;
     margin-top: 1px;
 }
 .att-report__session-stat {
@@ -140,7 +143,7 @@
 
 .att-report__cell {
     padding: 6px 8px;
-    border-bottom: 1px solid #e2e8f0;
+    border: 1px solid #e2e8f0;
     vertical-align: middle;
 }
 
@@ -241,12 +244,9 @@
 
     #attendanceReportTable .att-report__head {
         padding: 4px 6px !important;
-        background: #334155 !important;
-        color: #fff !important;
+        color: #1e293b !important;
         font-size: 9px !important;
-        border: 0.5px solid #475569 !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
+        border: 0.5px solid #9ca3af !important;
     }
 
     #attendanceReportTable .att-report__head--student {
@@ -255,6 +255,7 @@
 
     #attendanceReportTable .att-report__session-name {
         font-size: 9px !important;
+        color: #111827 !important;
     }
     #attendanceReportTable .att-report__session-date {
         font-size: 8px !important;
@@ -329,7 +330,7 @@
     }
 
     #printSummary {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 3px;
     }
 
@@ -358,6 +359,7 @@ const workloadHours = document.getElementById('workloadHours');
 const attendanceRatio = document.getElementById('attendanceRatio');
 const attendanceRatioMeta = document.getElementById('attendanceRatioMeta');
 const printCourseTitle = document.getElementById('printCourseTitle');
+const printClassName = document.getElementById('printClassName');
 const printStudentCount = document.getElementById('printStudentCount');
 const printAttendanceCount = document.getElementById('printAttendanceCount');
 const printWorkloadHours = document.getElementById('printWorkloadHours');
@@ -467,6 +469,7 @@ function renderReport(data) {
     attendanceRatio.textContent = `${presentPercent}% / ${absentPercent}%`;
     attendanceRatioMeta.textContent = `${totalPresent} {{ __('presenças') }} • ${totalAbsent} {{ __('faltas') }}`;
     printCourseTitle.textContent = data.course?.title || '-';
+    printClassName.textContent = data.name || '-';
     printStudentCount.textContent = String(enrollments.length);
     printAttendanceCount.textContent = String(attendances.length);
     printWorkloadHours.textContent = formatHours(data.course?.workload_hours || 0);
