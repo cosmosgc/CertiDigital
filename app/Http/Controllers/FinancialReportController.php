@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Course;
+use App\Models\CourseClass;
 use App\Models\CourseClassAttendance;
 use App\Models\Instructor;
 use App\Models\InstructorContract;
@@ -25,8 +27,23 @@ class FinancialReportController extends Controller
         $monthStart = $referenceMonth->copy()->startOfMonth();
         $monthEnd = $referenceMonth->copy()->endOfMonth();
 
+        // --- Filter parsing ---
+        $excludeCourses = $request->query('exclude_courses', []);
+        $excludeClasses = $request->query('exclude_classes', []);
+        if (!is_array($excludeCourses)) $excludeCourses = explode(',', $excludeCourses);
+        if (!is_array($excludeClasses)) $excludeClasses = explode(',', $excludeClasses);
+        $excludeCourses = array_filter($excludeCourses, fn($v) => is_numeric($v));
+        $excludeClasses = array_filter($excludeClasses, fn($v) => is_numeric($v));
+        $excludedClassIds = [];
+        if (!empty($excludeCourses)) {
+            $excludedClassIds = CourseClass::whereIn('course_id', $excludeCourses)->pluck('id')->toArray();
+        }
+        $excludedClassIds = array_unique(array_merge($excludedClassIds, array_map('intval', $excludeClasses)));
+        // --- End filter parsing ---
+
         $attendances = CourseClassAttendance::with(['courseClass.instructor'])
             ->whereBetween('attendance_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+            ->when(count($excludedClassIds) > 0, fn($q) => $q->whereNotIn('course_class_id', $excludedClassIds))
             ->get();
 
         $instructorRows = Instructor::query()
@@ -84,8 +101,9 @@ class FinancialReportController extends Controller
 		$instructorPaidTotal = (float) $instructorRows->sum('paid_amount');
 		$instructorPendingTotal = max($instructorTotal - $instructorPaidTotal, 0);
 
-		$billingsForMonth = StudentBilling::with(['student', 'courseClass'])
+        $billingsForMonth = StudentBilling::with(['student', 'courseClass'])
             ->whereBetween('reference_month', [$monthStart->toDateString(), $monthEnd->toDateString()])
+            ->when(count($excludedClassIds) > 0, fn($q) => $q->whereNotIn('course_class_id', $excludedClassIds))
             ->get();
 
         $billingTotal = (float) $billingsForMonth->sum('amount');
@@ -95,6 +113,7 @@ class FinancialReportController extends Controller
             ->where('status', 'pending')
             ->filter(fn (StudentBilling $billing) => $billing->due_date && $billing->due_date->isPast())
             ->sum('amount');
+        $billingCanceled = (float) $billingsForMonth->where('status', 'canceled')->sum('amount');
 
         $classBilling = $billingsForMonth
             ->groupBy('course_class_id')
@@ -112,6 +131,23 @@ class FinancialReportController extends Controller
             ->sortByDesc('amount')
             ->values();
 
+        // --- Billing by course ---
+        $courseBilling = $billingsForMonth
+            ->groupBy(fn($b) => $b->courseClass?->course_id ?? 0)
+            ->map(function ($billings, $courseId) {
+                $course = $billings->first()->courseClass?->course;
+                return [
+                    'course_name' => $course?->title ?? __('Sem curso'),
+                    'amount' => (float) $billings->sum('amount'),
+                    'paid' => (float) $billings->where('status', 'paid')->sum('amount'),
+                    'pending' => (float) $billings->where('status', 'pending')->sum('amount'),
+                    'canceled' => (float) $billings->where('status', 'canceled')->sum('amount'),
+                ];
+            })
+            ->sortByDesc('amount')
+            ->values();
+        // ---
+
         // Range totals and line graph
         $rangeStartInput = (string) $request->query('start', $monthInput);
         $rangeEndInput = (string) $request->query('end', $monthInput);
@@ -124,7 +160,9 @@ class FinancialReportController extends Controller
             $rangeEnd = $referenceMonth->copy()->endOfMonth();
         }
 
-        $billingsForRange = StudentBilling::whereBetween('reference_month', [$rangeStart->toDateString(), $rangeEnd->toDateString()])->get();
+        $billingsForRange = StudentBilling::whereBetween('reference_month', [$rangeStart->toDateString(), $rangeEnd->toDateString()])
+            ->when(count($excludedClassIds) > 0, fn($q) => $q->whereNotIn('course_class_id', $excludedClassIds))
+            ->get();
 
         $rangeBillingTotal = (float) $billingsForRange->sum('amount');
         $rangeBillingPaid = (float) $billingsForRange->where('status', 'paid')->sum('amount');
@@ -134,7 +172,7 @@ class FinancialReportController extends Controller
             ->filter(fn (StudentBilling $billing) => $billing->due_date && $billing->due_date->isPast())
             ->sum('amount');
 
-		$rangeInstructorTotal = $this->calculateInstructorTotalForPeriod($rangeStart, $rangeEnd);
+        $rangeInstructorTotal = $this->calculateInstructorTotalForPeriod($rangeStart, $rangeEnd, $excludedClassIds);
 
 		$rangePayments = InstructorPayment::whereBetween('reference_month', [$rangeStart->toDateString(), $rangeEnd->toDateString()])->get();
 		$rangeInstructorPaidTotal = (float) $rangePayments->where('paid_at', '!=', null)->sum('amount');
@@ -150,8 +188,10 @@ class FinancialReportController extends Controller
             $e = $cursor->copy()->endOfMonth();
 
             $rangeLabels[] = $cursor->translatedFormat('M/Y');
-            $rangeBillingValues[] = (float) StudentBilling::whereBetween('reference_month', [$s->toDateString(), $e->toDateString()])->sum('amount');
-            $rangeInstructorValues[] = $this->calculateInstructorTotalForPeriod($s, $e);
+            $rangeBillingValues[] = (float) StudentBilling::whereBetween('reference_month', [$s->toDateString(), $e->toDateString()])
+                ->when(count($excludedClassIds) > 0, fn($q) => $q->whereNotIn('course_class_id', $excludedClassIds))
+                ->sum('amount');
+            $rangeInstructorValues[] = $this->calculateInstructorTotalForPeriod($s, $e, $excludedClassIds);
 
             $cursor->addMonth();
         }
@@ -166,9 +206,67 @@ class FinancialReportController extends Controller
             $end = $cursor->copy()->endOfMonth();
 
             $monthlyLabels[] = $cursor->translatedFormat('M/Y');
-            $monthlyBillingValues[] = (float) StudentBilling::whereBetween('reference_month', [$start->toDateString(), $end->toDateString()])->sum('amount');
-            $monthlyInstructorValues[] = $this->calculateInstructorTotalForPeriod($start, $end);
+            $monthlyBillingValues[] = (float) StudentBilling::whereBetween('reference_month', [$start->toDateString(), $end->toDateString()])
+                ->when(count($excludedClassIds) > 0, fn($q) => $q->whereNotIn('course_class_id', $excludedClassIds))
+                ->sum('amount');
+            $monthlyInstructorValues[] = $this->calculateInstructorTotalForPeriod($start, $end, $excludedClassIds);
         }
+
+        // --- Heatmap daily data ---
+        $dailySessions = CourseClassAttendance::whereBetween('attendance_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+            ->when(count($excludedClassIds) > 0, fn($q) => $q->whereNotIn('course_class_id', $excludedClassIds))
+            ->selectRaw('attendance_date, COUNT(*) as session_count, SUM(duration_hours) as total_hours')
+            ->groupBy('attendance_date')
+            ->get()
+            ->keyBy(fn($item) => $item->attendance_date instanceof \Carbon\Carbon ? $item->attendance_date->toDateString() : $item->attendance_date);
+
+        $dailyDueAmounts = StudentBilling::whereBetween('reference_month', [$monthStart->toDateString(), $monthEnd->toDateString()])
+            ->whereNotNull('due_date')
+            ->when(count($excludedClassIds) > 0, fn($q) => $q->whereNotIn('course_class_id', $excludedClassIds))
+            ->selectRaw('due_date, SUM(amount) as total, COUNT(*) as bill_count')
+            ->groupBy('due_date')
+            ->get()
+            ->keyBy(fn($item) => $item->due_date->toDateString());
+
+        $dailyPaidAmounts = StudentBilling::whereBetween('reference_month', [$monthStart->toDateString(), $monthEnd->toDateString()])
+            ->where('status', 'paid')
+            ->whereNotNull('paid_at')
+            ->when(count($excludedClassIds) > 0, fn($q) => $q->whereNotIn('course_class_id', $excludedClassIds))
+            ->selectRaw('DATE(paid_at) as paid_date, SUM(amount) as total')
+            ->groupBy('paid_date')
+            ->get()
+            ->keyBy('paid_date');
+
+        $daysInMonth = $referenceMonth->daysInMonth;
+        $heatmapDays = [];
+        for ($day = 1; $day <= $daysInMonth; $day++) {
+            $date = $referenceMonth->copy()->day($day);
+            $dateStr = $date->toDateString();
+            $heatmapDays[] = [
+                'day' => $day,
+                'weekday' => $date->dayOfWeek,
+                'session_count' => (int) ($dailySessions[$dateStr]->session_count ?? 0),
+                'session_hours' => (float) ($dailySessions[$dateStr]->total_hours ?? 0),
+                'billing_due' => (float) ($dailyDueAmounts[$dateStr]->total ?? 0),
+                'bill_count' => (int) ($dailyDueAmounts[$dateStr]->bill_count ?? 0),
+                'paid_amount' => (float) ($dailyPaidAmounts[$dateStr]->total ?? 0),
+                'is_today' => $date->isToday(),
+                'is_weekend' => $date->isWeekend(),
+                'is_future' => $date->isFuture(),
+            ];
+        }
+
+        // --- Distribution data ---
+        $billingStatusAmount = [
+            'paid' => $billingPaid,
+            'pending_within' => max($billingPending - $billingOverdue, 0),
+            'overdue' => $billingOverdue,
+            'canceled' => $billingCanceled,
+        ];
+
+        // --- Filter lists ---
+        $courses = Course::orderBy('title')->get();
+        $allClasses = CourseClass::with('course')->orderBy('name')->get();
 
 		return view('financial.reports', [
 			'referenceMonth' => $referenceMonth,
@@ -193,9 +291,17 @@ class FinancialReportController extends Controller
 			'rangeInstructorTotal' => $rangeInstructorTotal,
 			'rangeInstructorPaidTotal' => $rangeInstructorPaidTotal,
 			'rangeInstructorPendingTotal' => $rangeInstructorPendingTotal,
-			'rangeLabels' => $rangeLabels,
+            'rangeLabels' => $rangeLabels,
             'rangeBillingValues' => $rangeBillingValues,
             'rangeInstructorValues' => $rangeInstructorValues,
+            'billingCanceled' => $billingCanceled,
+            'courseBilling' => $courseBilling,
+            'heatmapDays' => $heatmapDays,
+            'billingStatusAmount' => $billingStatusAmount,
+            'courses' => $courses,
+            'allClasses' => $allClasses,
+            'excludeCourses' => $excludeCourses,
+            'excludeClasses' => $excludeClasses,
         ]);
     }
 
@@ -263,10 +369,11 @@ class FinancialReportController extends Controller
             });
     }
 
-    private function calculateInstructorTotalForPeriod(Carbon $periodStart, Carbon $periodEnd): float
+    private function calculateInstructorTotalForPeriod(Carbon $periodStart, Carbon $periodEnd, array $excludedClassIds = []): float
     {
         $attendances = CourseClassAttendance::with(['courseClass.instructor.contracts'])
             ->whereBetween('attendance_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
+            ->when(count($excludedClassIds) > 0, fn($q) => $q->whereNotIn('course_class_id', $excludedClassIds))
             ->get();
 
         $instructors = $attendances
