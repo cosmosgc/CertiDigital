@@ -282,6 +282,24 @@
                 </section>
             </div>
 
+            {{-- ====== Projection Chart ====== --}}
+            @php
+                $combinedLabels = array_merge($monthlyLabels, $projectLabels);
+                $histBilling = array_merge($monthlyBillingValues, array_fill(0, count($projectLabels), null));
+                $projBilling = array_merge(array_fill(0, count($monthlyLabels), null), $projectBillingValues);
+                $histInstructor = array_merge($monthlyInstructorValues, array_fill(0, count($projectLabels), null));
+                $projInstructor = array_merge(array_fill(0, count($monthlyLabels), null), $projectInstructorValues);
+            @endphp
+            <section class="rounded-3xl border border-slate-900/10 bg-slate-950 p-5">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-white">{{ __('Projeção financeira') }}</h3>
+                    <span class="text-[10px] text-slate-500">{{ __('Regressão linear sobre os últimos 6 meses') }}</span>
+                </div>
+                <div class="mt-3 h-[240px]">
+                    <canvas id="projectionChart"></canvas>
+                </div>
+            </section>
+
             {{-- ====== Course Breakdown ====== --}}
             <section class="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-sm{{ $courseBilling->isEmpty() ? ' no-print' : '' }}">
                 <h3 class="text-sm font-semibold text-slate-900">{{ __('Receitas por curso') }}</h3>
@@ -382,8 +400,8 @@
                 </article>
             </div>
 
-            {{-- ====== Instructor Earnings Table ====== --}}
-            @php $rowsComContratoOuGanho = $instructorRows->filter(fn($r) => $r['payment_type'] !== null || $r['earnings'] > 0); @endphp
+            {{-- ====== Instructor Earnings Table (per-course breakdown) ====== --}}
+            @php $rowsComContratoOuGanho = $instructorRows->filter(fn($r) => $r['total_earnings'] > 0 || collect($r['courses'])->some(fn($c) => $c['payment_type'] !== null)); @endphp
             <section class="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-sm">
                 <h3 class="text-sm font-semibold text-slate-900">{{ __('Ganhos por instrutor') }}</h3>
                 <p class="mt-0.5 text-xs text-slate-500">{{ __('Base: presença nas aulas do mês selecionado.') }}</p>
@@ -392,6 +410,7 @@
                         <thead>
                             <tr class="bg-slate-100">
                                 <th class="px-4 py-2.5 text-left font-semibold text-slate-700">{{ __('Instrutor') }}</th>
+                                <th class="px-4 py-2.5 text-left font-semibold text-slate-700">{{ __('Curso') }}</th>
                                 <th class="px-4 py-2.5 text-left font-semibold text-slate-700">{{ __('Contrato') }}</th>
                                 <th class="px-4 py-2.5 text-right font-semibold text-slate-700">{{ __('Horas') }}</th>
                                 <th class="px-4 py-2.5 text-right font-semibold text-slate-700">{{ __('Aulas') }}</th>
@@ -403,130 +422,207 @@
                         <tbody class="divide-y divide-slate-100 bg-white">
                             @forelse ($rowsComContratoOuGanho as $row)
                                 @php
-                                    $contract = $row['contract'];
+                                    $courseCount = count($row['courses']);
                                     $payment = $row['payment'];
-                                    $earnings = $row['earnings'];
                                     $paidAmount = $row['paid_amount'];
                                     $paymentStatus = $row['payment_status'];
-                                    $diff = $paidAmount - $earnings;
                                 @endphp
-                                <tr class="hover:bg-slate-50/50">
-                                    <td class="px-4 py-2.5 font-medium text-slate-800">{{ $row['instructor']->full_name }}</td>
-                                    <td class="px-4 py-2.5 text-slate-600">
-                                        @if ($row['payment_type'] === 'hourly')
-                                            <span class="text-xs">R$ {{ number_format($row['contract_value'], 2, ',', '.') }}/h</span>
-                                        @elseif ($row['payment_type'] === 'monthly_fixed')
-                                            <span class="text-xs">{{ __('Fixo') }} R$ {{ number_format($row['contract_value'], 2, ',', '.') }}</span>
-                                        @else
-                                            <span class="text-xs text-rose-500">{{ __('Sem contrato') }}</span>
+                                @foreach ($row['courses'] as $ci => $courseRow)
+                                    @php
+                                        $contract = $courseRow['contract'];
+                                        $earnings = $courseRow['earnings'];
+                                        $diff = $paidAmount - $row['total_earnings'];
+                                    @endphp
+                                    <tr class="hover:bg-slate-50/50">
+                                        @if ($ci === 0)
+                                            <td class="px-4 py-2.5 font-medium text-slate-800" rowspan="{{ $courseCount }}">
+                                                {{ $row['instructor']->full_name }}
+                                            </td>
                                         @endif
-                                    </td>
-                                    <td class="px-4 py-2.5 text-right tabular-nums text-slate-700">{{ number_format($row['hours'], 1, ',', '.') }}</td>
-                                    <td class="px-4 py-2.5 text-right tabular-nums text-slate-700">{{ $row['sessions'] }}</td>
-                                    <td class="px-4 py-2.5 text-right tabular-nums font-semibold text-slate-900">R$ {{ number_format($earnings, 2, ',', '.') }}</td>
-                                    <td class="px-4 py-2.5">
-                                        <form method="POST" action="{{ route('financial.reports.instructor-pay', $row['instructor']) }}" class="flex flex-wrap items-center gap-1.5">
-                                            @csrf
-                                            <input type="hidden" name="reference_month" value="{{ $referenceMonth->format('Y-m') }}">
-                                            <input type="number" step="0.01" min="0" name="amount" value="{{ old('amount', $paidAmount ?: $earnings) }}"
-                                                class="w-24 rounded-lg border border-slate-300 px-2 py-1 text-xs tabular-nums text-right">
-                                            <button type="submit" name="paid" value="1"
-                                                class="rounded-lg px-2.5 py-1 text-xs font-semibold {{ $paymentStatus === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-900 text-white' }}">
-                                                {{ $paymentStatus === 'paid' ? __('Pago') : __('Pagar') }}
-                                            </button>
-                                            @if ($payment)
-                                                <button type="submit" name="remove" value="1"
-                                                    class="rounded-lg border border-rose-300 px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50"
-                                                    onclick="return confirm('{{ __('Remover pagamento deste instrutor?') }}')">
-                                                    {{ __('Remover') }}
-                                                </button>
-                                            @endif
-                                        </form>
-                                    </td>
-                                    <td class="px-4 py-2.5 text-center">
-                                        @if ($row['payment_type'] === null)
-                                            <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">
-                                                {{ __('N/A') }}
-                                            </span>
-                                        @elseif ($paymentStatus === 'paid')
-                                            @if ($diff > 0.01)
-                                                <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700" title="{{ __('Pago a mais: R$ :value', ['value' => number_format($diff, 2, ',', '.')]) }}">
-                                                    +R$ {{ number_format($diff, 2, ',', '.') }}
-                                                </span>
-                                            @elseif ($diff < -0.01)
-                                                <span class="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-700" title="{{ __('Diferença: R$ :value', ['value' => number_format(abs($diff), 2, ',', '.')]) }}">
-                                                    -R$ {{ number_format(abs($diff), 2, ',', '.') }}
-                                                </span>
+                                        <td class="px-4 py-2.5 text-slate-700">
+                                            {{ $courseRow['course']?->title ?? __('Sem curso') }}
+                                        </td>
+                                        <td class="px-4 py-2.5 text-slate-600">
+                                            @if ($courseRow['payment_type'] === 'hourly')
+                                                <span class="text-xs">R$ {{ number_format($courseRow['contract_value'], 2, ',', '.') }}/h</span>
+                                            @elseif ($courseRow['payment_type'] === 'monthly_fixed')
+                                                <span class="text-xs">{{ __('Fixo') }} R$ {{ number_format($courseRow['contract_value'], 2, ',', '.') }}</span>
                                             @else
-                                                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
-                                                    {{ __('OK') }}
-                                                </span>
+                                                <span class="text-xs text-rose-500">{{ __('Sem contrato') }}</span>
                                             @endif
-                                        @else
-                                            <span class="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-700">
-                                                R$ {{ number_format($earnings, 2, ',', '.') }}
-                                            </span>
+                                        </td>
+                                        <td class="px-4 py-2.5 text-right tabular-nums text-slate-700">{{ number_format($courseRow['hours'], 1, ',', '.') }}</td>
+                                        <td class="px-4 py-2.5 text-right tabular-nums text-slate-700">{{ $courseRow['sessions'] }}</td>
+                                        <td class="px-4 py-2.5 text-right tabular-nums font-semibold text-slate-900">R$ {{ number_format($earnings, 2, ',', '.') }}</td>
+                                        @if ($ci === 0)
+                                            <td class="px-4 py-2.5" rowspan="{{ $courseCount }}">
+                                                <form method="POST" action="{{ route('financial.reports.instructor-pay', $row['instructor']) }}" class="flex flex-wrap items-center gap-1.5">
+                                                    @csrf
+                                                    <input type="hidden" name="reference_month" value="{{ $referenceMonth->format('Y-m') }}">
+                                                    <input type="number" step="0.01" min="0" name="amount" value="{{ old('amount', $paidAmount ?: $row['total_earnings']) }}"
+                                                        class="w-24 rounded-lg border border-slate-300 px-2 py-1 text-xs tabular-nums text-right">
+                                                    <button type="submit" name="paid" value="1"
+                                                        class="rounded-lg px-2.5 py-1 text-xs font-semibold {{ $paymentStatus === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-900 text-white' }}">
+                                                        {{ $paymentStatus === 'paid' ? __('Pago') : __('Pagar') }}
+                                                    </button>
+                                                    @if ($payment)
+                                                        <button type="submit" name="remove" value="1"
+                                                            class="rounded-lg border border-rose-300 px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50"
+                                                            onclick="return confirm('{{ __('Remover pagamento deste instrutor?') }}')">
+                                                            {{ __('Remover') }}
+                                                        </button>
+                                                    @endif
+                                                </form>
+                                            </td>
+                                            <td class="px-4 py-2.5 text-center" rowspan="{{ $courseCount }}">
+                                                @php $anyHasContract = collect($row['courses'])->some(fn($c) => $c['payment_type'] !== null); @endphp
+                                                @if (!$anyHasContract)
+                                                    <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">
+                                                        {{ __('N/A') }}
+                                                    </span>
+                                                @elseif ($paymentStatus === 'paid')
+                                                    @if ($diff > 0.01)
+                                                        <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700" title="{{ __('Pago a mais: R$ :value', ['value' => number_format($diff, 2, ',', '.')]) }}">
+                                                            +R$ {{ number_format($diff, 2, ',', '.') }}
+                                                        </span>
+                                                    @elseif ($diff < -0.01)
+                                                        <span class="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-700" title="{{ __('Diferença: R$ :value', ['value' => number_format(abs($diff), 2, ',', '.')]) }}">
+                                                            -R$ {{ number_format(abs($diff), 2, ',', '.') }}
+                                                        </span>
+                                                    @else
+                                                        <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+                                                            {{ __('OK') }}
+                                                        </span>
+                                                    @endif
+                                                @else
+                                                    <span class="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-700">
+                                                        R$ {{ number_format($row['total_earnings'], 2, ',', '.') }}
+                                                    </span>
+                                                @endif
+                                            </td>
                                         @endif
-                                    </td>
-                                </tr>
+                                    </tr>
+                                @endforeach
+                                {{-- Total row for this instructor --}}
+                                @if ($courseCount > 1)
+                                    <tr class="bg-slate-50/50 font-semibold">
+                                        <td colspan="2" class="px-4 py-2 text-right text-xs uppercase tracking-wider text-slate-500">{{ __('Total') }}</td>
+                                        <td class="px-4 py-2 text-right tabular-nums text-slate-800">{{ number_format($row['total_hours'], 1, ',', '.') }}</td>
+                                        <td class="px-4 py-2 text-right tabular-nums text-slate-800">{{ $row['total_sessions'] }}</td>
+                                        <td class="px-4 py-2 text-right tabular-nums text-slate-900">R$ {{ number_format($row['total_earnings'], 2, ',', '.') }}</td>
+                                        <td colspan="2"></td>
+                                    </tr>
+                                @endif
                             @empty
-                                <tr><td colspan="7" class="px-4 py-8 text-center text-sm text-slate-400">{{ __('Sem dados de instrutores para o período.') }}</td></tr>
+                                <tr><td colspan="8" class="px-4 py-8 text-center text-sm text-slate-400">{{ __('Sem dados de instrutores para o período.') }}</td></tr>
                             @endforelse
                         </tbody>
                     </table>
                 </div>
             </section>
 
-            {{-- ====== Contract Editor (collapsible) ====== --}}
+            {{-- ====== Contract Editor (collapsible, per-course) ====== --}}
             <details class="no-print group rounded-3xl border border-slate-900/10 bg-slate-950 p-5">
                 <summary class="flex cursor-pointer items-center justify-between text-sm font-medium text-slate-200">
-                    <span>{{ __('Contratos de instrutores') }}</span>
+                    <span>{{ __('Contratos de instrutores por curso') }}</span>
                     <svg class="h-4 w-4 text-slate-500 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                 </summary>
                 <div class="mt-4 space-y-2">
                     @foreach ($instructorRows as $row)
-                        @php $contract = $row['contract']; @endphp
                         <details class="group rounded-2xl border border-slate-700/50 bg-slate-900/30 transition-colors hover:border-slate-600/50">
                             <summary class="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-medium text-slate-200">
                                 <span>{{ $row['instructor']->full_name }}</span>
-                                <span class="text-xs text-slate-500 group-open:hidden">{{ __('Clique para editar') }}</span>
-                                <span class="hidden text-xs text-cyan-400 group-open:inline">{{ __('Editando') }}</span>
+                                <span class="text-xs text-slate-500 group-open:hidden">{{ __('Clique para editar contratos') }}</span>
+                                <span class="hidden text-xs text-cyan-400 group-open:inline">{{ __('Editando contratos') }}</span>
                             </summary>
-                            <div class="border-t border-slate-700/50 px-4 py-4">
-                                <form method="POST" action="{{ route('financial.reports.instructor-contract.save', $row['instructor']) }}" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                                    @csrf
-                                    <input type="hidden" name="month" value="{{ $referenceMonth->format('Y-m') }}">
-                                    <input type="hidden" name="contract_id" value="{{ $contract?->id }}">
+                            <div class="border-t border-slate-700/50 px-4 py-4 space-y-4">
+                                @php
+                                    $allContracts = $row['instructor']->contracts;
+                                    $coursesList = \App\Models\Course::orderBy('title')->get();
+                                @endphp
+                                {{-- Per-course contract forms --}}
+                                @foreach ($coursesList as $course)
+                                    @php
+                                        $courseContract = $allContracts->first(fn($c) => $c->course_id === $course->id);
+                                    @endphp
+                                    <div class="rounded-xl border border-slate-700/30 bg-slate-900/20 p-3">
+                                        <h4 class="mb-2 text-xs font-semibold uppercase tracking-wider text-cyan-400">{{ $course->title }}</h4>
+                                        <form method="POST" action="{{ route('financial.reports.instructor-contract.save', $row['instructor']) }}" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                            @csrf
+                                            <input type="hidden" name="month" value="{{ $referenceMonth->format('Y-m') }}">
+                                            <input type="hidden" name="course_id" value="{{ $course->id }}">
+                                            <input type="hidden" name="contract_id" value="{{ $courseContract?->id }}">
 
-                                    <select name="payment_type" class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs text-slate-200">
-                                        <option value="hourly" @selected(($contract?->payment_type ?? 'hourly') === 'hourly')>{{ __('Por hora') }}</option>
-                                        <option value="monthly_fixed" @selected(($contract?->payment_type ?? '') === 'monthly_fixed')>{{ __('Fixo mensal') }}</option>
-                                    </select>
+                                            <select name="payment_type" class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs text-slate-200">
+                                                <option value="hourly" @selected(($courseContract?->payment_type ?? 'hourly') === 'hourly')>{{ __('Por hora') }}</option>
+                                                <option value="monthly_fixed" @selected(($courseContract?->payment_type ?? '') === 'monthly_fixed')>{{ __('Fixo mensal') }}</option>
+                                            </select>
 
-                                    <select name="active" class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs text-slate-200">
-                                        <option value="1" @selected(($contract?->active ?? true) === true)>{{ __('Ativo') }}</option>
-                                        <option value="0" @selected(($contract?->active ?? true) === false)>{{ __('Inativo') }}</option>
-                                    </select>
+                                            <select name="active" class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs text-slate-200">
+                                                <option value="1" @selected(($courseContract?->active ?? true) === true)>{{ __('Ativo') }}</option>
+                                                <option value="0" @selected(($courseContract?->active ?? true) === false)>{{ __('Inativo') }}</option>
+                                            </select>
 
-                                    <input type="number" step="0.01" min="0" name="hourly_rate" value="{{ old('hourly_rate', $contract?->hourly_rate) }}"
-                                        placeholder="{{ __('Valor/hora') }}" class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs text-slate-200 placeholder-slate-500">
+                                            <input type="number" step="0.01" min="0" name="hourly_rate" value="{{ old('hourly_rate', $courseContract?->hourly_rate) }}"
+                                                placeholder="{{ __('Valor/hora') }}" class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs text-slate-200 placeholder-slate-500">
 
-                                    <input type="number" step="0.01" min="0" name="monthly_amount" value="{{ old('monthly_amount', $contract?->monthly_amount) }}"
-                                        placeholder="{{ __('Valor mensal') }}" class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs text-slate-200 placeholder-slate-500">
+                                            <input type="number" step="0.01" min="0" name="monthly_amount" value="{{ old('monthly_amount', $courseContract?->monthly_amount) }}"
+                                                placeholder="{{ __('Valor mensal') }}" class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs text-slate-200 placeholder-slate-500">
 
-                                    <input type="date" name="starts_at" value="{{ old('starts_at', optional($contract?->starts_at)->format('Y-m-d') ?? $referenceMonth->copy()->startOfMonth()->format('Y-m-d')) }}"
-                                        class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs text-slate-200">
+                                            <input type="date" name="starts_at" value="{{ old('starts_at', optional($courseContract?->starts_at)->format('Y-m-d') ?? $referenceMonth->copy()->startOfMonth()->format('Y-m-d')) }}"
+                                                class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs text-slate-200">
 
-                                    <input type="date" name="ends_at" value="{{ old('ends_at', optional($contract?->ends_at)->format('Y-m-d')) }}"
-                                        class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs text-slate-200">
+                                            <input type="date" name="ends_at" value="{{ old('ends_at', optional($courseContract?->ends_at)->format('Y-m-d')) }}"
+                                                class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs text-slate-200">
 
-                                    <input type="text" name="notes" value="{{ old('notes', $contract?->notes) }}"
-                                        placeholder="{{ __('Observações') }}" class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs text-slate-200 placeholder-slate-500 lg:col-span-2">
+                                            <input type="text" name="notes" value="{{ old('notes', $courseContract?->notes) }}"
+                                                placeholder="{{ __('Observações') }}" class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs text-slate-200 placeholder-slate-500 lg:col-span-2">
 
-                                    <button class="rounded-lg bg-cyan-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-cyan-500">
-                                        {{ __('Salvar contrato') }}
-                                    </button>
-                                </form>
+                                            <button class="rounded-lg bg-cyan-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-cyan-500">
+                                                {{ __('Salvar contrato') }}
+                                            </button>
+                                        </form>
+                                    </div>
+                                @endforeach
+                                {{-- Fallback contract (no specific course) --}}
+                                @php $fallbackContract = $allContracts->first(fn($c) => $c->course_id === null); @endphp
+                                <div class="rounded-xl border border-dashed border-slate-600/30 bg-slate-900/10 p-3">
+                                    <h4 class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">{{ __('Contrato genérico (fallback)') }}</h4>
+                                    <form method="POST" action="{{ route('financial.reports.instructor-contract.save', $row['instructor']) }}" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                        @csrf
+                                        <input type="hidden" name="month" value="{{ $referenceMonth->format('Y-m') }}">
+                                        <input type="hidden" name="contract_id" value="{{ $fallbackContract?->id }}">
+
+                                        <select name="payment_type" class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs text-slate-200">
+                                            <option value="hourly" @selected(($fallbackContract?->payment_type ?? 'hourly') === 'hourly')>{{ __('Por hora') }}</option>
+                                            <option value="monthly_fixed" @selected(($fallbackContract?->payment_type ?? '') === 'monthly_fixed')>{{ __('Fixo mensal') }}</option>
+                                        </select>
+
+                                        <select name="active" class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs text-slate-200">
+                                            <option value="1" @selected(($fallbackContract?->active ?? true) === true)>{{ __('Ativo') }}</option>
+                                            <option value="0" @selected(($fallbackContract?->active ?? true) === false)>{{ __('Inativo') }}</option>
+                                        </select>
+
+                                        <input type="number" step="0.01" min="0" name="hourly_rate" value="{{ old('hourly_rate', $fallbackContract?->hourly_rate) }}"
+                                            placeholder="{{ __('Valor/hora') }}" class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs text-slate-200 placeholder-slate-500">
+
+                                        <input type="number" step="0.01" min="0" name="monthly_amount" value="{{ old('monthly_amount', $fallbackContract?->monthly_amount) }}"
+                                            placeholder="{{ __('Valor mensal') }}" class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs text-slate-200 placeholder-slate-500">
+
+                                        <input type="date" name="starts_at" value="{{ old('starts_at', optional($fallbackContract?->starts_at)->format('Y-m-d') ?? $referenceMonth->copy()->startOfMonth()->format('Y-m-d')) }}"
+                                            class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs text-slate-200">
+
+                                        <input type="date" name="ends_at" value="{{ old('ends_at', optional($fallbackContract?->ends_at)->format('Y-m-d')) }}"
+                                            class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs text-slate-200">
+
+                                        <input type="text" name="notes" value="{{ old('notes', $fallbackContract?->notes) }}"
+                                            placeholder="{{ __('Observações') }}" class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs text-slate-200 placeholder-slate-500 lg:col-span-2">
+
+                                        <button class="rounded-lg bg-cyan-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-cyan-500">
+                                            {{ __('Salvar contrato') }}
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
                         </details>
                     @endforeach
@@ -640,6 +736,64 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: { legend: { labels: { color: '#e2e8f0', boxWidth: 10, font: { size: 10 } } } },
+                    scales: {
+                        x: { ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { display: false } },
+                        y: { beginAtZero: true, ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { color: 'rgba(148, 163, 184, 0.12)' } },
+                    },
+                },
+            });
+        })();
+
+        // --- Projection chart ---
+        (function() {
+            const labels = @json($combinedLabels);
+            const histBill = @json($histBilling);
+            const projBill = @json($projBilling);
+            const histInst = @json($histInstructor);
+            const projInst = @json($projInstructor);
+            const el = document.getElementById('projectionChart');
+            if (!el) return;
+            new Chart(el.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: @json(__('Faturamento (real)')),
+                            data: histBill,
+                            backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                            borderRadius: 4,
+                        },
+                        {
+                            label: @json(__('Faturamento (projeção)')),
+                            data: projBill,
+                            backgroundColor: 'rgba(16, 185, 129, 0.25)',
+                            borderColor: 'rgba(16, 185, 129, 0.6)',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                        },
+                        {
+                            label: @json(__('Custo instr. (real)')),
+                            data: histInst,
+                            backgroundColor: 'rgba(244, 63, 94, 0.8)',
+                            borderRadius: 4,
+                        },
+                        {
+                            label: @json(__('Custo instr. (projeção)')),
+                            data: projInst,
+                            backgroundColor: 'rgba(244, 63, 94, 0.25)',
+                            borderColor: 'rgba(244, 63, 94, 0.6)',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#e2e8f0', boxWidth: 10, font: { size: 10 } } },
+                    },
                     scales: {
                         x: { ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { display: false } },
                         y: { beginAtZero: true, ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { color: 'rgba(148, 163, 184, 0.12)' } },

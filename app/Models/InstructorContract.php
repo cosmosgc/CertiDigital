@@ -11,6 +11,7 @@ class InstructorContract extends Model
 
     protected $fillable = [
         'instructor_id',
+        'course_id',
         'payment_type',
         'hourly_rate',
         'monthly_amount',
@@ -31,5 +32,10 @@ class InstructorContract extends Model
     public function instructor()
     {
         return $this->belongsTo(Instructor::class);
+    }
+
+    public function course()
+    {
+        return $this->belongsTo(Course::class);
     }
 }

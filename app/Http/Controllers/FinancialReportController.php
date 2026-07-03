@@ -41,7 +41,7 @@ class FinancialReportController extends Controller
         $excludedClassIds = array_unique(array_merge($excludedClassIds, array_map('intval', $excludeClasses)));
         // --- End filter parsing ---
 
-        $attendances = CourseClassAttendance::with(['courseClass.instructor'])
+        $attendances = CourseClassAttendance::with(['courseClass.instructor', 'courseClass.course'])
             ->whereBetween('attendance_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
             ->when(count($excludedClassIds) > 0, fn($q) => $q->whereNotIn('course_class_id', $excludedClassIds))
             ->get();
@@ -55,51 +55,74 @@ class FinancialReportController extends Controller
                     fn (CourseClassAttendance $attendance) => $attendance->courseClass?->instructor_id === $instructor->id
                 );
 
-                $hours = (float) $instructorAttendances->sum('duration_hours');
-                $sessions = $instructorAttendances->count();
+                // Group attendances by course_id
+                $groupedByCourse = $instructorAttendances->groupBy(fn ($att) => $att->courseClass?->course_id ?? 0);
 
-                $contract = $this->resolveContractForMonth($instructor, $monthStart, $monthEnd);
+                $courses = [];
+                $totalHours = 0.0;
+                $totalSessions = 0;
+                $totalEarnings = 0.0;
 
-                $earnings = 0.0;
-                if ($contract) {
-                    if ($contract->payment_type === 'hourly') {
-                        $earnings = $hours * (float) $contract->hourly_rate;
+                foreach ($groupedByCourse as $courseId => $courseAttendances) {
+                    $course = $courseAttendances->first()->courseClass?->course;
+                    $hours = (float) $courseAttendances->sum('duration_hours');
+                    $sessions = $courseAttendances->count();
+
+                    $contract = $this->resolveContractForMonth($instructor, $monthStart, $monthEnd, $courseId);
+
+                    $earnings = 0.0;
+                    if ($contract) {
+                        if ($contract->payment_type === 'hourly') {
+                            $earnings = $hours * (float) $contract->hourly_rate;
+                        }
+
+                        if ($contract->payment_type === 'monthly_fixed' && $sessions > 0) {
+                            $earnings = (float) $contract->monthly_amount;
+                        }
                     }
 
-                    if ($contract->payment_type === 'monthly_fixed' && $sessions > 0) {
-                        $earnings = (float) $contract->monthly_amount;
-                    }
+                    $courses[] = [
+                        'course' => $course,
+                        'contract' => $contract,
+                        'payment_type' => $contract?->payment_type,
+                        'contract_value' => $contract?->payment_type === 'hourly'
+                            ? (float) $contract?->hourly_rate
+                            : (float) $contract?->monthly_amount,
+                        'hours' => $hours,
+                        'sessions' => $sessions,
+                        'earnings' => round($earnings, 2),
+                    ];
+
+                    $totalHours += $hours;
+                    $totalSessions += $sessions;
+                    $totalEarnings += $earnings;
                 }
 
                 return [
                     'instructor' => $instructor,
-                    'contract' => $contract,
-                    'payment_type' => $contract?->payment_type,
-                    'contract_value' => $contract?->payment_type === 'hourly'
-                        ? (float) $contract?->hourly_rate
-                        : (float) $contract?->monthly_amount,
-                    'hours' => $hours,
-                    'sessions' => $sessions,
-                    'earnings' => round($earnings, 2),
+                    'courses' => $courses,
+                    'total_hours' => $totalHours,
+                    'total_sessions' => $totalSessions,
+                    'total_earnings' => round($totalEarnings, 2),
                 ];
             });
 
-		$instructorTotal = (float) $instructorRows->sum('earnings');
+        $instructorTotal = (float) $instructorRows->sum('total_earnings');
 
-		$payments = InstructorPayment::whereBetween('reference_month', [$monthStart->toDateString(), $monthEnd->toDateString()])
-			->get()
-			->keyBy('instructor_id');
+        $payments = InstructorPayment::whereBetween('reference_month', [$monthStart->toDateString(), $monthEnd->toDateString()])
+            ->get()
+            ->keyBy('instructor_id');
 
-		$instructorRows = $instructorRows->map(function ($row) use ($payments) {
-			$payment = $payments->get($row['instructor']->id);
-			$row['payment'] = $payment;
-			$row['payment_status'] = $payment && $payment->paid_at ? 'paid' : 'pending';
-			$row['paid_amount'] = $payment ? (float) $payment->amount : 0;
-			return $row;
-		});
+        $instructorRows = $instructorRows->map(function ($row) use ($payments) {
+            $payment = $payments->get($row['instructor']->id);
+            $row['payment'] = $payment;
+            $row['payment_status'] = $payment && $payment->paid_at ? 'paid' : 'pending';
+            $row['paid_amount'] = $payment ? (float) $payment->amount : 0;
+            return $row;
+        });
 
-		$instructorPaidTotal = (float) $instructorRows->sum('paid_amount');
-		$instructorPendingTotal = max($instructorTotal - $instructorPaidTotal, 0);
+        $instructorPaidTotal = (float) $instructorRows->sum('paid_amount');
+        $instructorPendingTotal = max($instructorTotal - $instructorPaidTotal, 0);
 
         $billingsForMonth = StudentBilling::with(['student', 'courseClass'])
             ->whereBetween('reference_month', [$monthStart->toDateString(), $monthEnd->toDateString()])
@@ -174,11 +197,11 @@ class FinancialReportController extends Controller
 
         $rangeInstructorTotal = $this->calculateInstructorTotalForPeriod($rangeStart, $rangeEnd, $excludedClassIds);
 
-		$rangePayments = InstructorPayment::whereBetween('reference_month', [$rangeStart->toDateString(), $rangeEnd->toDateString()])->get();
-		$rangeInstructorPaidTotal = (float) $rangePayments->where('paid_at', '!=', null)->sum('amount');
-		$rangeInstructorPendingTotal = max($rangeInstructorTotal - $rangeInstructorPaidTotal, 0);
+        $rangePayments = InstructorPayment::whereBetween('reference_month', [$rangeStart->toDateString(), $rangeEnd->toDateString()])->get();
+        $rangeInstructorPaidTotal = (float) $rangePayments->where('paid_at', '!=', null)->sum('amount');
+        $rangeInstructorPendingTotal = max($rangeInstructorTotal - $rangeInstructorPaidTotal, 0);
 
-		$rangeLabels = [];
+        $rangeLabels = [];
         $rangeBillingValues = [];
         $rangeInstructorValues = [];
 
@@ -211,6 +234,36 @@ class FinancialReportController extends Controller
                 ->sum('amount');
             $monthlyInstructorValues[] = $this->calculateInstructorTotalForPeriod($start, $end, $excludedClassIds);
         }
+
+        // --- Future projection (linear regression on last 6 months) ---
+        $x = [0, 1, 2, 3, 4, 5];
+        $n = 6;
+        $sumX = 15;
+        $sumX2 = 55;
+        $denom = $n * $sumX2 - $sumX * $sumX;
+
+        $sumY = array_sum($monthlyBillingValues);
+        $sumXY = 0;
+        for ($i = 0; $i < $n; $i++) $sumXY += $x[$i] * $monthlyBillingValues[$i];
+        $bSlope = $denom ? ($n * $sumXY - $sumX * $sumY) / $denom : 0;
+        $bIntercept = $n ? ($sumY - $bSlope * $sumX) / $n : 0;
+
+        $sumY = array_sum($monthlyInstructorValues);
+        $sumXY = 0;
+        for ($i = 0; $i < $n; $i++) $sumXY += $x[$i] * $monthlyInstructorValues[$i];
+        $iSlope = $denom ? ($n * $sumXY - $sumX * $sumY) / $denom : 0;
+        $iIntercept = $n ? ($sumY - $iSlope * $sumX) / $n : 0;
+
+        $projectLabels = [];
+        $projectBillingValues = [];
+        $projectInstructorValues = [];
+        for ($i = 1; $i <= 3; $i++) {
+            $m = now()->startOfMonth()->addMonths($i);
+            $projectLabels[] = $m->translatedFormat('M/Y');
+            $projectBillingValues[] = round(max(0, $bIntercept + $bSlope * (5 + $i)), 2);
+            $projectInstructorValues[] = round(max(0, $iIntercept + $iSlope * (5 + $i)), 2);
+        }
+        // ---
 
         // --- Heatmap daily data ---
         $dailySessions = CourseClassAttendance::whereBetween('attendance_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
@@ -268,12 +321,12 @@ class FinancialReportController extends Controller
         $courses = Course::orderBy('title')->get();
         $allClasses = CourseClass::with('course')->orderBy('name')->get();
 
-		return view('financial.reports', [
-			'referenceMonth' => $referenceMonth,
-			'instructorRows' => $instructorRows,
-			'instructorTotal' => $instructorTotal,
-			'instructorPaidTotal' => $instructorPaidTotal,
-			'instructorPendingTotal' => $instructorPendingTotal,
+        return view('financial.reports', [
+            'referenceMonth' => $referenceMonth,
+            'instructorRows' => $instructorRows,
+            'instructorTotal' => $instructorTotal,
+            'instructorPaidTotal' => $instructorPaidTotal,
+            'instructorPendingTotal' => $instructorPendingTotal,
             'billingTotal' => $billingTotal,
             'billingPaid' => $billingPaid,
             'billingPending' => $billingPending,
@@ -288,9 +341,9 @@ class FinancialReportController extends Controller
             'rangeBillingPaid' => $rangeBillingPaid,
             'rangeBillingPending' => $rangeBillingPending,
             'rangeBillingOverdue' => $rangeBillingOverdue,
-			'rangeInstructorTotal' => $rangeInstructorTotal,
-			'rangeInstructorPaidTotal' => $rangeInstructorPaidTotal,
-			'rangeInstructorPendingTotal' => $rangeInstructorPendingTotal,
+            'rangeInstructorTotal' => $rangeInstructorTotal,
+            'rangeInstructorPaidTotal' => $rangeInstructorPaidTotal,
+            'rangeInstructorPendingTotal' => $rangeInstructorPendingTotal,
             'rangeLabels' => $rangeLabels,
             'rangeBillingValues' => $rangeBillingValues,
             'rangeInstructorValues' => $rangeInstructorValues,
@@ -298,6 +351,9 @@ class FinancialReportController extends Controller
             'courseBilling' => $courseBilling,
             'heatmapDays' => $heatmapDays,
             'billingStatusAmount' => $billingStatusAmount,
+            'projectLabels' => $projectLabels,
+            'projectBillingValues' => $projectBillingValues,
+            'projectInstructorValues' => $projectInstructorValues,
             'courses' => $courses,
             'allClasses' => $allClasses,
             'excludeCourses' => $excludeCourses,
@@ -309,6 +365,7 @@ class FinancialReportController extends Controller
     {
         $validated = $request->validate([
             'contract_id' => ['nullable', 'integer', 'exists:instructor_contracts,id'],
+            'course_id' => ['nullable', 'integer', 'exists:courses,id'],
             'payment_type' => ['required', 'in:hourly,monthly_fixed'],
             'hourly_rate' => ['nullable', 'numeric', 'min:0'],
             'monthly_amount' => ['nullable', 'numeric', 'min:0'],
@@ -332,6 +389,7 @@ class FinancialReportController extends Controller
             $contract->instructor_id = $instructor->id;
         }
 
+        $contract->course_id = $validated['course_id'] ?? null;
         $contract->payment_type = $validated['payment_type'];
         $contract->hourly_rate = $validated['payment_type'] === 'hourly'
             ? ($validated['hourly_rate'] ?? 0)
@@ -352,11 +410,16 @@ class FinancialReportController extends Controller
             ->with('status', __('Contrato do instrutor salvo com sucesso.'));
     }
 
-    private function resolveContractForMonth(Instructor $instructor, Carbon $monthStart, Carbon $monthEnd): ?InstructorContract
+    private function resolveContractForMonth(Instructor $instructor, Carbon $monthStart, Carbon $monthEnd, ?int $courseId = null): ?InstructorContract
     {
         return $instructor->contracts
-            ->first(function (InstructorContract $contract) use ($monthStart, $monthEnd) {
+            ->first(function (InstructorContract $contract) use ($monthStart, $monthEnd, $courseId) {
                 if (! $contract->active) {
+                    return false;
+                }
+
+                // Match by course_id: if contract has course_id, it must match; if null, it's a fallback
+                if ($courseId !== null && $contract->course_id !== null && $contract->course_id !== $courseId) {
                     return false;
                 }
 
@@ -371,7 +434,7 @@ class FinancialReportController extends Controller
 
     private function calculateInstructorTotalForPeriod(Carbon $periodStart, Carbon $periodEnd, array $excludedClassIds = []): float
     {
-        $attendances = CourseClassAttendance::with(['courseClass.instructor.contracts'])
+        $attendances = CourseClassAttendance::with(['courseClass.instructor.contracts', 'courseClass.course'])
             ->whereBetween('attendance_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
             ->when(count($excludedClassIds) > 0, fn($q) => $q->whereNotIn('course_class_id', $excludedClassIds))
             ->get();
@@ -388,85 +451,90 @@ class FinancialReportController extends Controller
                 fn (CourseClassAttendance $attendance) => $attendance->courseClass?->instructor_id === $instructor->id
             );
 
-            $hours = (float) $instructorAttendances->sum('duration_hours');
-            $sessions = $instructorAttendances->count();
-            $contract = $this->resolveContractForMonth($instructor, $periodStart, $periodEnd);
+            // Group by course
+            $groupedByCourse = $instructorAttendances->groupBy(fn ($att) => $att->courseClass?->course_id ?? 0);
 
-            if (! $contract) {
-                continue;
-            }
+            foreach ($groupedByCourse as $courseId => $courseAttendances) {
+                $hours = (float) $courseAttendances->sum('duration_hours');
+                $sessions = $courseAttendances->count();
+                $contract = $this->resolveContractForMonth($instructor, $periodStart, $periodEnd, $courseId);
 
-            if ($contract->payment_type === 'hourly') {
-                $sum += $hours * (float) $contract->hourly_rate;
-                continue;
-            }
+                if (! $contract) {
+                    continue;
+                }
 
-            if ($contract->payment_type === 'monthly_fixed' && $sessions > 0) {
-                $sum += (float) $contract->monthly_amount;
+                if ($contract->payment_type === 'hourly') {
+                    $sum += $hours * (float) $contract->hourly_rate;
+                    continue;
+                }
+
+                if ($contract->payment_type === 'monthly_fixed' && $sessions > 0) {
+                    $sum += (float) $contract->monthly_amount;
+                }
             }
         }
 
-		return round($sum, 2);
-	}
+        return round($sum, 2);
+    }
 
-	public function savePayment(Request $request, Instructor $instructor)
-	{
-		if ($request->has('remove')) {
-			$referenceMonth = $request->input('reference_month', now()->format('Y-m'));
-			try {
-				$monthDate = Carbon::createFromFormat('Y-m', $referenceMonth)->startOfMonth();
-			} catch (\Throwable $e) {
-				$monthDate = now()->startOfMonth();
-			}
+    public function savePayment(Request $request, Instructor $instructor)
+    {
+        if ($request->has('remove')) {
+            $referenceMonth = $request->input('reference_month', now()->format('Y-m'));
+            try {
+                $monthDate = Carbon::createFromFormat('Y-m', $referenceMonth)->startOfMonth();
+            } catch (\Throwable $e) {
+                $monthDate = now()->startOfMonth();
+            }
 
-			InstructorPayment::where('instructor_id', $instructor->id)
-				->where('reference_month', $monthDate->toDateString())
-				->delete();
+            InstructorPayment::where('instructor_id', $instructor->id)
+                ->where('reference_month', $monthDate->toDateString())
+                ->delete();
 
-			return redirect()
-				->route('financial.reports', ['month' => $referenceMonth])
-				->with('status', __('Pagamento do instrutor removido.'));
-		}
+            return redirect()
+                ->route('financial.reports', ['month' => $referenceMonth])
+                ->with('status', __('Pagamento do instrutor removido.'));
+        }
 
-		$validated = $request->validate([
-			'amount' => ['required', 'numeric', 'min:0'],
-			'reference_month' => ['required', 'string'],
-			'paid' => ['nullable', 'boolean'],
-		]);
+        $validated = $request->validate([
+            'amount' => ['required', 'numeric', 'min:0'],
+            'reference_month' => ['required', 'string'],
+            'paid' => ['nullable', 'boolean'],
+        ]);
 
-		$referenceMonth = $validated['reference_month'];
+        $referenceMonth = $validated['reference_month'];
 
-		try {
-			$monthDate = Carbon::createFromFormat('Y-m', $referenceMonth)->startOfMonth();
-		} catch (\Throwable $e) {
-			$monthDate = now()->startOfMonth();
-		}
+        try {
+            $monthDate = Carbon::createFromFormat('Y-m', $referenceMonth)->startOfMonth();
+        } catch (\Throwable $e) {
+            $monthDate = now()->startOfMonth();
+        }
 
-		$amount = (float) $validated['amount'];
+        $amount = (float) $validated['amount'];
 
-		if ($amount <= 0 && ! $request->has('paid')) {
-			InstructorPayment::where('instructor_id', $instructor->id)
-				->where('reference_month', $monthDate->toDateString())
-				->delete();
+        if ($amount <= 0 && ! $request->has('paid')) {
+            InstructorPayment::where('instructor_id', $instructor->id)
+                ->where('reference_month', $monthDate->toDateString())
+                ->delete();
 
-			return redirect()
-				->route('financial.reports', ['month' => $referenceMonth])
-				->with('status', __('Registro de pagamento removido (valor zerado).'));
-		}
+            return redirect()
+                ->route('financial.reports', ['month' => $referenceMonth])
+                ->with('status', __('Registro de pagamento removido (valor zerado).'));
+        }
 
-		$payment = InstructorPayment::firstOrNew([
-			'instructor_id' => $instructor->id,
-			'reference_month' => $monthDate->toDateString(),
-		]);
+        $payment = InstructorPayment::firstOrNew([
+            'instructor_id' => $instructor->id,
+            'reference_month' => $monthDate->toDateString(),
+        ]);
 
-		$payment->amount = $amount;
-		$payment->paid_at = ! empty($validated['paid']) ? now() : null;
-		$payment->save();
+        $payment->amount = $amount;
+        $payment->paid_at = ! empty($validated['paid']) ? now() : null;
+        $payment->save();
 
-		return redirect()
-			->route('financial.reports', ['month' => $referenceMonth])
-			->with('status', $payment->paid_at
-				? __('Pagamento do instrutor registrado como pago.')
-				: __('Registro de pagamento do instrutor atualizado.'));
-	}
+        return redirect()
+            ->route('financial.reports', ['month' => $referenceMonth])
+            ->with('status', $payment->paid_at
+                ? __('Pagamento do instrutor registrado como pago.')
+                : __('Registro de pagamento do instrutor atualizado.'));
+    }
 }

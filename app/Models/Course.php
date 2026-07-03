@@ -41,4 +41,9 @@ class Course extends Model
     {
         return $this->hasMany(Certificate::class);
     }
+
+    public function contracts()
+    {
+        return $this->hasMany(InstructorContract::class);
+    }
 }
