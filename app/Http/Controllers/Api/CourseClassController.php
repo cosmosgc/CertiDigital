@@ -60,6 +60,7 @@ class CourseClassController extends Controller
                 'enrollments.trimesterGrades',
                 'students',
                 'attendances.records.student',
+                'scheduleEvents',
             ]),
             Response::HTTP_OK
         );

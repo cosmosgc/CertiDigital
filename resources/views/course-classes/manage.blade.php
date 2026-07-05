@@ -30,6 +30,7 @@
             <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{{ __('Carga horária') }}</p>
                 <p id="workloadHours" class="mt-3 text-3xl font-semibold text-slate-900">0h</p>
+                <p id="plannedHoursStats" class="mt-1 text-xs text-cyan-700 font-medium"></p>
             </div>
             <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{{ __('Alunos') }}</p>
@@ -91,8 +92,13 @@
 
         <div class="grid gap-6 lg:grid-cols-[1.1fr,0.9fr]">
             <section class="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-cyan-200">
-                <h3 class="text-lg font-semibold text-gray-900">{{ __('Sessões de presença') }}</h3>
-                <p class="mt-1 text-sm text-gray-600">{{ __('Ao criar uma nova sessão, todos os alunos da turma começam marcados como presentes. Depois, você pode ajustar quem entrou atrasado ou faltou.') }}</p>
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">{{ __('Sessões de presença') }}</h3>
+                        <p class="mt-1 text-sm text-gray-600">{{ __('Ao criar uma nova sessão, todos os alunos da turma começam marcados como presentes. Depois, você pode ajustar quem entrou atrasado ou faltou.') }}</p>
+                        <p id="plannedHoursSection" class="mt-1 text-xs text-cyan-700 font-medium"></p>
+                    </div>
+                </div>
 
                 <form id="attendanceForm" class="mt-4 space-y-4">
                     <input type="hidden" name="attendance_id">
@@ -117,6 +123,13 @@
                 </form>
 
                 <div id="attendanceList" class="mt-6 grid gap-3"></div>
+
+                <div id="upcomingClassesSection" class="mt-6 hidden">
+                    <hr class="mb-4 border-cyan-100">
+                    <h4 class="text-sm font-semibold text-gray-900">{{ __('Próximas aulas previstas') }}</h4>
+                    <p class="mt-1 text-xs text-gray-500">{{ __('Aulas da agenda que ainda não têm sessão de presença.') }}</p>
+                    <div id="upcomingClassesList" class="mt-3 grid gap-2"></div>
+                </div>
             </section>
 
             <section class="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-slate-200">
@@ -228,6 +241,71 @@ function formatHours(value) {
 
 function getWorkloadValue() {
     return Number(classData?.course?.workload_hours ?? 0);
+}
+
+function calculateEventDuration(event) {
+    if (!event.is_all_day && event.start_time && event.end_time) {
+        const startParts = (event.start_time || '').split(':');
+        const endParts = (event.end_time || '').split(':');
+        if (startParts.length >= 2 && endParts.length >= 2) {
+            const startMinutes = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+            const endMinutes = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
+            return Math.max(0.25, (endMinutes - startMinutes) / 60);
+        }
+    }
+    return 1;
+}
+
+function parseDate(val) {
+    return new Date((val || '').slice(0, 10) + 'T00:00:00');
+}
+
+function fmtDate(date) {
+    return date.toISOString().slice(0, 10);
+}
+
+function getEventOccurrences(event) {
+    const start = parseDate(event.start_date);
+    const dates = [];
+
+    if (event.is_recurring_weekly && event.weekday !== null && event.weekday !== undefined) {
+        const end = event.end_date
+            ? parseDate(event.end_date)
+            : parseDate(today);
+        end.setMonth(end.getMonth() + 6);
+
+        const current = new Date(start);
+        while (current <= end) {
+            if (current.getDay() === Number(event.weekday)) {
+                dates.push(fmtDate(current));
+                current.setDate(current.getDate() + 7);
+            } else {
+                current.setDate(current.getDate() + 1);
+            }
+        }
+    } else {
+        dates.push((event.start_date || '').slice(0, 10));
+    }
+
+    return [...new Set(dates)];
+}
+
+function calculatePlannedHours() {
+    const events = classData?.schedule_events || [];
+    let total = 0;
+    for (const event of events) {
+        total += calculateEventDuration(event) * getEventOccurrences(event).length;
+    }
+    return total;
+}
+
+function displayPlannedHours() {
+    const hours = calculatePlannedHours();
+    const text = hours > 0 ? '{{ __('Planejado') }}: ' + formatHours(hours) + ' {{ __('na agenda') }}' : '';
+    const statsEl = document.getElementById('plannedHoursStats');
+    const sectionEl = document.getElementById('plannedHoursSection');
+    if (statsEl) statsEl.textContent = text;
+    if (sectionEl) sectionEl.textContent = text;
 }
 
 function getProgressPercent(hours) {
@@ -398,6 +476,7 @@ function renderClassData() {
     courseTitle.textContent = classData.course?.title || '';
     instructorName.textContent = classData.instructor?.full_name || @json(__('Não definido'));
     workloadHours.textContent = formatHours(classData.course?.workload_hours || 0);
+    displayPlannedHours();
     classDescription.textContent = classData.description || @json(__('Sem descrição cadastrada.'));
     studentCount.textContent = classData.enrollments?.length || 0;
     console.log(classData.enrollments?.length || 0, 'enrollments loaded for class');
@@ -446,6 +525,7 @@ function renderClassData() {
     renderStudentSearchResults(studentSearchInput.value);
     renderAttendanceList();
     renderSelectedAttendance();
+    renderUpcomingClasses();
 }
 
 function renderAttendanceList() {
@@ -801,6 +881,74 @@ attendanceRecordForm.addEventListener('submit', async (e) => {
     } else {
         const error = await res.json().catch(() => null);
         alert(error?.message || @json(__('Erro ao adicionar presença')));
+    }
+});
+
+function renderUpcomingClasses() {
+    const events = classData?.schedule_events || [];
+    console.log('[upcoming] schedule_events:', events);
+    const existingDates = new Set((classData?.attendances || []).map(a => (a.attendance_date || '').slice(0, 10)));
+    const section = document.getElementById('upcomingClassesSection');
+    const list = document.getElementById('upcomingClassesList');
+
+    const upcoming = [];
+    for (const event of events) {
+        const duration = calculateEventDuration(event);
+        const dates = getEventOccurrences(event);
+        console.log('[upcoming] event:', event.title || '(no title)', 'dates:', dates, 'recurring:', event.is_recurring_weekly, 'weekday:', event.weekday);
+        for (const date of dates) {
+            if (date >= today && !existingDates.has(date)) {
+                upcoming.push({ date, duration, title: event.title || null });
+            }
+        }
+    }
+    console.log('[upcoming] filtered:', upcoming, 'today:', today, 'existingDates:', [...existingDates]);
+    upcoming.sort((a, b) => a.date.localeCompare(b.date));
+
+    if (!upcoming.length) {
+        section.classList.add('hidden');
+        return;
+    }
+
+    section.classList.remove('hidden');
+    list.innerHTML = upcoming.map(item => `
+        <div class="flex items-center gap-3 rounded-xl border border-cyan-100 bg-cyan-50/30 px-4 py-3 text-sm">
+            <span class="shrink-0 rounded-md bg-cyan-100 px-2 py-1 text-xs font-semibold text-cyan-700">${item.date}</span>
+            <span class="flex-1 font-medium text-gray-800">${item.title || item.date}</span>
+            <span class="shrink-0 text-gray-500">${formatHours(item.duration)}</span>
+            <button type="button" class="createUpcomingBtn shrink-0 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700" data-date="${item.date}" data-duration="${item.duration}" data-title="${item.title || ''}">
+                {{ __('Criar sessão') }}
+            </button>
+        </div>
+    `).join('');
+}
+
+document.getElementById('upcomingClassesList')?.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.createUpcomingBtn');
+    if (!btn) return;
+
+    const res = await fetch(`{{ route("api.course-classes.attendances.store", ["course_class" => "__ID__"]) }}`.replace('__ID__', classId), {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token,
+            'X-User-Id': currentUserId,
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            name: btn.dataset.title || null,
+            attendance_date: btn.dataset.date,
+            duration_hours: btn.dataset.duration || 1,
+            user_id: currentUserId
+        })
+    });
+
+    if (res.ok) {
+        await fetchClassData();
+    } else {
+        const error = await res.json().catch(() => null);
+        alert(error?.message || '{{ __('Erro ao criar sessão') }}');
     }
 });
 
