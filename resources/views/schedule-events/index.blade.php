@@ -106,7 +106,10 @@
                 <p class="mt-1 text-sm text-gray-500">{{ __('Cadastre aulas semanais, provas, reuniões, feriados e outros compromissos importantes em um só lugar.') }}</p>
             </div>
             @if($canManageScheduleEvents)
-                <button id="showCreate" class="inline-flex items-center justify-center rounded-xl bg-sky-600 px-4 py-3 font-medium text-white shadow-sm transition hover:bg-sky-700">{{ __('Novo evento') }}</button>
+                <div class="flex flex-wrap gap-2">
+                    <a href="{{ route('schedule-events.manage') }}" class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-3 font-medium text-white shadow-sm transition hover:bg-slate-700">{{ __('Gerenciar dias / feriados') }}</a>
+                    <button id="showCreate" class="inline-flex items-center justify-center rounded-xl bg-sky-600 px-4 py-3 font-medium text-white shadow-sm transition hover:bg-sky-700">{{ __('Novo evento') }}</button>
+                </div>
             @endif
         </div>
 
@@ -148,6 +151,58 @@
                 </div>
             </div>
         </div>
+
+        @if($canManageScheduleEvents)
+            <div id="dayManagerSection" class="print-hide mt-6 rounded-2xl border border-rose-200 bg-rose-50/60 p-4 sm:p-5">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                        <p class="text-sm font-semibold text-slate-900">{{ __('Gerenciar dia / feriado') }}</p>
+                        <p class="mt-1 text-sm text-slate-500">{{ __('Escolha um dia para ver tudo que cai nele (aulas recorrentes, eventos avulsos e presenças) e exclua em massa. Aulas semanais são ocultadas do planner nos dias com feriado cadastrado.') }}</p>
+                    </div>
+                    <span id="dayManagerCount" class="text-xs font-medium uppercase tracking-[0.18em] text-slate-400"></span>
+                </div>
+
+                <div class="mt-4 grid gap-4 lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)_auto]">
+                    <div>
+                        <label for="dayManagerDate" class="block text-sm font-medium text-gray-700">{{ __('Dia') }}</label>
+                        <input id="dayManagerDate" type="date" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" />
+                    </div>
+                    <div>
+                        <label for="dayManagerHolidayTitle" class="block text-sm font-medium text-gray-700">{{ __('Título do feriado (para ocultar aulas do planner)') }}</label>
+                        <input id="dayManagerHolidayTitle" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm" placeholder="{{ __('Ex.: Natal') }}" />
+                    </div>
+                    <div class="flex flex-wrap items-end gap-2">
+                        <button id="dayManagerSearchBtn" type="button" class="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white">{{ __('Buscar dia') }}</button>
+                        <button id="dayManagerCreateHolidayBtn" type="button" class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white">{{ __('Cadastrar feriado') }}</button>
+                    </div>
+                </div>
+
+                <div id="dayManagerResults" class="mt-4 hidden grid gap-4 lg:grid-cols-2">
+                    <div class="rounded-2xl border border-gray-200 bg-white p-4">
+                        <div class="flex items-center justify-between gap-3">
+                            <p class="text-sm font-semibold text-slate-900">{{ __('Eventos da agenda neste dia') }}</p>
+                            <label class="flex items-center gap-2 text-xs text-slate-500">
+                                <input id="dayManagerSelectAllEvents" type="checkbox" class="rounded border-gray-300 text-sky-600 shadow-sm" />
+                                {{ __('Todos') }}
+                            </label>
+                        </div>
+                        <div id="dayManagerEventsList" class="mt-3 max-h-72 space-y-2 overflow-y-auto"></div>
+                        <button id="dayManagerDeleteEventsBtn" type="button" class="mt-3 w-full rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50">{{ __('Excluir eventos selecionados') }}</button>
+                    </div>
+                    <div class="rounded-2xl border border-gray-200 bg-white p-4">
+                        <div class="flex items-center justify-between gap-3">
+                            <p class="text-sm font-semibold text-slate-900">{{ __('Presenças / chamadas neste dia') }}</p>
+                            <label class="flex items-center gap-2 text-xs text-slate-500">
+                                <input id="dayManagerSelectAllAttendances" type="checkbox" class="rounded border-gray-300 text-sky-600 shadow-sm" />
+                                {{ __('Todas') }}
+                            </label>
+                        </div>
+                        <div id="dayManagerAttendancesList" class="mt-3 max-h-72 space-y-2 overflow-y-auto"></div>
+                        <button id="dayManagerDeleteAttendancesBtn" type="button" class="mt-3 w-full rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50">{{ __('Excluir presenças selecionadas') }}</button>
+                    </div>
+                </div>
+            </div>
+        @endif
 
         <div id="scheduleSummarySection" class="mt-6 grid gap-4 md:grid-cols-3">
             <div class="rounded-2xl border border-sky-100 bg-sky-50 p-4">
@@ -215,9 +270,18 @@
         </div>
 
         <div id="scheduleListSection" class="mt-6 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+            @if($canManageScheduleEvents)
+                <div class="print-hide flex flex-wrap items-center gap-3 border-b border-gray-100 bg-gray-50/70 px-4 py-3">
+                    <span id="bulkSelectedCount" class="text-sm text-gray-600">{{ __('Nenhum selecionado') }}</span>
+                    <button id="bulkDeleteBtn" type="button" class="rounded-xl bg-rose-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50" disabled>{{ __('Excluir selecionados') }}</button>
+                </div>
+            @endif
             <table class="w-full table-auto" id="scheduleEventsTable">
                 <thead>
                     <tr class="bg-gray-50 text-left text-sm text-gray-600">
+                        @if($canManageScheduleEvents)
+                            <th class="p-2"><input id="selectAllEvents" type="checkbox" class="print-hide rounded border-gray-300 text-sky-600 shadow-sm" /></th>
+                        @endif
                         <th class="p-2">{{ __('Evento') }}</th>
                         <th class="p-2">{{ __('Tipo') }}</th>
                         <th class="p-2">{{ __('Turma') }}</th>
@@ -711,7 +775,35 @@ function updateSummaryCards(list) {
     upcomingCount.textContent = upcomingItems;
 }
 
+function isHolidayDate(date) {
+    const dateOnly = toIsoDate(date);
+
+    return scheduleEvents.some(item => item
+        && item.event_type === 'holiday'
+        && eventOccursOnDateRaw(item, new Date(`${dateOnly}T00:00:00`)));
+}
+
+function isHiddenByHoliday(item, date) {
+    if (!item || item.event_type === 'holiday') {
+        return false;
+    }
+
+    if (item.event_type !== 'weekly_class') {
+        return false;
+    }
+
+    return isHolidayDate(date);
+}
+
 function eventOccursOnDate(item, date) {
+    if (isHiddenByHoliday(item, date)) {
+        return false;
+    }
+
+    return eventOccursOnDateRaw(item, date);
+}
+
+function eventOccursOnDateRaw(item, date) {
     const dateOnly = toIsoDate(date);
     const startDate = normalizeDateValue(item.start_date);
     const endDate = normalizeDateValue(item.end_date);
@@ -872,16 +964,90 @@ function renderCalendar(list) {
     }).join('');
 }
 
+function isWeeklyHiddenSomewhere(item) {
+    if (!item || item.event_type !== 'weekly_class') {
+        return false;
+    }
+
+    return scheduleEvents.some(holiday => {
+        if (!holiday || holiday.event_type !== 'holiday') {
+            return false;
+        }
+
+        if (!holiday.is_recurring_weekly) {
+            const start = parseLocalDate(normalizeDateValue(holiday.start_date));
+            const end = parseLocalDate(normalizeDateValue(holiday.end_date)) || start;
+            if (!start || !end) {
+                return false;
+            }
+
+            const days = Math.min(370, Math.round((end - start) / 86400000));
+            for (let offset = 0; offset <= days; offset++) {
+                if (eventOccursOnDateRaw(item, addDays(start, offset))) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        const itemWeekday = Number.isInteger(item.weekday)
+            ? item.weekday
+            : (parseLocalDate(normalizeDateValue(item.start_date))?.getDay() ?? null);
+        const holidayWeekday = Number.isInteger(holiday.weekday)
+            ? holiday.weekday
+            : (parseLocalDate(normalizeDateValue(holiday.start_date))?.getDay() ?? null);
+
+        if (itemWeekday === null || holidayWeekday === null || itemWeekday !== holidayWeekday) {
+            return false;
+        }
+
+        const itemStart = normalizeDateValue(item.start_date);
+        const itemEnd = normalizeDateValue(item.end_date) || endOfYearIso(itemStart);
+        const holidayStart = normalizeDateValue(holiday.start_date);
+        const holidayEnd = normalizeDateValue(holiday.end_date) || endOfYearIso(holidayStart);
+
+        return itemStart <= holidayEnd && holidayStart <= itemEnd;
+    });
+}
+
+function getSelectedEventIds() {
+    return Array.from(tableBody.querySelectorAll('.rowSelect:checked')).map(cb => cb.value);
+}
+
+function refreshBulkBar() {
+    const bulkBtn = document.getElementById('bulkDeleteBtn');
+    const bulkCount = document.getElementById('bulkSelectedCount');
+    if (!bulkBtn || !bulkCount) {
+        return;
+    }
+
+    const count = getSelectedEventIds().length;
+    bulkBtn.disabled = count === 0;
+    bulkCount.textContent = count
+        ? `${count} ${@json(__('selecionado(s)'))}`
+        : @json(__('Nenhum selecionado'));
+}
+
 function renderScheduleEvents(list) {
     scheduleEvents = list || [];
     tableBody.innerHTML = '';
 
     scheduleEvents.forEach(item => {
         const tr = document.createElement('tr');
+        const hiddenBadge = isWeeklyHiddenSomewhere(item)
+            ? `<div class="mt-1 inline-block rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">${@json(__('Oculto no planner em feriados'))}</div>`
+            : '';
         tr.innerHTML = `
+            ${canManageScheduleEvents ? `
+                <td class="p-2 print-hide">
+                    <input type="checkbox" class="rowSelect rounded border-gray-300 text-sky-600 shadow-sm" value="${item.id}" />
+                </td>
+            ` : ''}
             <td class="p-2">
                 <div class="font-medium text-gray-900">${item.title}</div>
                 <div class="text-sm text-gray-500">${item.location || ''}</div>
+                ${hiddenBadge}
             </td>
             <td class="p-2">${typeLabels[item.event_type] || item.event_type}</td>
             <td class="p-2">${item.course_class?.name || ''}</td>
@@ -908,6 +1074,13 @@ function renderScheduleEvents(list) {
     }
 
     scheduleEventsDataTable = new DataTable('#scheduleEventsTable');
+
+    const selectAll = document.getElementById('selectAllEvents');
+    if (selectAll) {
+        selectAll.checked = false;
+    }
+    refreshBulkBar();
+    refreshDayManager();
 }
 
 function getActiveFilters() {
@@ -1215,8 +1388,270 @@ if (canManageScheduleEvents) {
     });
 }
 
+function getDayManagerDate() {
+    return document.getElementById('dayManagerDate')?.value || '';
+}
+
+function getAttendancesOnDate(dateIso) {
+    if (!dateIso) {
+        return [];
+    }
+
+    const rows = [];
+    (courseClasses || []).forEach(courseClass => {
+        (courseClass.attendances || []).forEach(attendance => {
+            const attendanceDate = normalizeDateValue(attendance.attendance_date);
+            if (attendanceDate === dateIso) {
+                rows.push({ ...attendance, course_class_name: courseClass.name });
+            }
+        });
+    });
+
+    return rows.sort((a, b) => String(a.course_class_name || '').localeCompare(String(b.course_class_name || '')));
+}
+
+function refreshDayManager() {
+    const dateInput = document.getElementById('dayManagerDate');
+    const results = document.getElementById('dayManagerResults');
+    const eventsList = document.getElementById('dayManagerEventsList');
+    const attendancesList = document.getElementById('dayManagerAttendancesList');
+    const countLabel = document.getElementById('dayManagerCount');
+    if (!dateInput || !results || !eventsList || !attendancesList) {
+        return;
+    }
+
+    const dateIso = getDayManagerDate();
+    if (!dateIso) {
+        results.classList.add('hidden');
+        if (countLabel) {
+            countLabel.textContent = '';
+        }
+        return;
+    }
+
+    const parsed = parseLocalDate(dateIso);
+    const dayEvents = parsed ? scheduleEvents.filter(item => eventOccursOnDateRaw(item, parsed)) : [];
+    const dayAttendances = getAttendancesOnDate(dateIso);
+
+    results.classList.remove('hidden');
+    if (countLabel) {
+        countLabel.textContent = `${dayEvents.length + dayAttendances.length} ${@json(__('no dia'))}`;
+    }
+
+    eventsList.innerHTML = dayEvents.length ? dayEvents.map(item => `
+        <label class="flex items-start gap-3 rounded-xl border border-gray-200 px-3 py-2.5 text-sm hover:bg-gray-50">
+            <input type="checkbox" class="dmEventCheck mt-1 rounded border-gray-300 text-rose-600 shadow-sm" value="${item.id}" checked />
+            <span class="min-w-0">
+                <span class="block truncate font-medium text-slate-900">${escapeHtml(item.title || '')}</span>
+                <span class="block text-xs text-slate-500">${escapeHtml(typeLabels[item.event_type] || item.event_type || '')}${item.course_class?.name ? ` • ${escapeHtml(item.course_class.name)}` : ''}${item.is_recurring_weekly ? ` • ${@json(__('recorrente — excluir apaga a série toda'))}` : ''}</span>
+            </span>
+        </label>
+    `).join('') : `<p class="rounded-xl bg-gray-50 px-3 py-4 text-center text-sm text-gray-500">{{ __('Nenhum evento neste dia.') }}</p>`;
+
+    attendancesList.innerHTML = dayAttendances.length ? dayAttendances.map(attendance => `
+        <label class="flex items-start gap-3 rounded-xl border border-gray-200 px-3 py-2.5 text-sm hover:bg-gray-50">
+            <input type="checkbox" class="dmAttendanceCheck mt-1 rounded border-gray-300 text-rose-600 shadow-sm" value="${attendance.id}" checked />
+            <span class="min-w-0">
+                <span class="block truncate font-medium text-slate-900">${escapeHtml(attendance.course_class_name || '')} • ${escapeHtml(attendance.name || '')}</span>
+                <span class="block text-xs text-slate-500">${(attendance.records || []).length} ${@json(__('registros de alunos'))}</span>
+            </span>
+        </label>
+    `).join('') : `<p class="rounded-xl bg-gray-50 px-3 py-4 text-center text-sm text-gray-500">{{ __('Nenhuma presença neste dia.') }}</p>`;
+
+    const selectAllEvents = document.getElementById('dayManagerSelectAllEvents');
+    const selectAllAttendances = document.getElementById('dayManagerSelectAllAttendances');
+    if (selectAllEvents) {
+        selectAllEvents.checked = dayEvents.length > 0;
+    }
+    if (selectAllAttendances) {
+        selectAllAttendances.checked = dayAttendances.length > 0;
+    }
+}
+
+async function bulkDestroyEvents(ids) {
+    const res = await fetch('{{ route("api.schedule-events.bulk-destroy") }}', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token,
+            'X-User-Id': currentUserId,
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({ ids, user_id: currentUserId })
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => null);
+        throw new Error(error?.message || @json(__('Erro ao excluir eventos')));
+    }
+
+    return res.json();
+}
+
+async function bulkDestroyAttendances(ids) {
+    const res = await fetch('{{ route("api.course-class-attendances.bulk-destroy") }}', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token,
+            'X-User-Id': currentUserId,
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({ ids, user_id: currentUserId })
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => null);
+        throw new Error(error?.message || @json(__('Erro ao excluir presenças')));
+    }
+
+    return res.json();
+}
+
+if (canManageScheduleEvents) {
+    tableBody.addEventListener('change', (e) => {
+        if (e.target.classList.contains('rowSelect')) {
+            refreshBulkBar();
+        }
+    });
+
+    document.getElementById('selectAllEvents')?.addEventListener('change', (e) => {
+        tableBody.querySelectorAll('.rowSelect').forEach(cb => {
+            cb.checked = e.target.checked;
+        });
+        refreshBulkBar();
+    });
+
+    document.getElementById('bulkDeleteBtn')?.addEventListener('click', async () => {
+        const ids = getSelectedEventIds();
+        if (!ids.length) {
+            return;
+        }
+        if (!confirm(@json(__('Excluir os eventos selecionados? Esta ação não pode ser desfeita.')))) {
+            return;
+        }
+
+        try {
+            const result = await bulkDestroyEvents(ids.map(Number));
+            alert(`${result.deleted ?? ids.length} ${@json(__('evento(s) excluído(s).'))}`);
+            await loadDependencies();
+            await fetchScheduleEvents();
+        } catch (error) {
+            alert(error.message);
+        }
+    });
+
+    document.getElementById('dayManagerSearchBtn')?.addEventListener('click', refreshDayManager);
+    document.getElementById('dayManagerDate')?.addEventListener('change', refreshDayManager);
+
+    document.getElementById('dayManagerSelectAllEvents')?.addEventListener('change', (e) => {
+        document.querySelectorAll('.dmEventCheck').forEach(cb => {
+            cb.checked = e.target.checked;
+        });
+    });
+
+    document.getElementById('dayManagerSelectAllAttendances')?.addEventListener('change', (e) => {
+        document.querySelectorAll('.dmAttendanceCheck').forEach(cb => {
+            cb.checked = e.target.checked;
+        });
+    });
+
+    document.getElementById('dayManagerDeleteEventsBtn')?.addEventListener('click', async () => {
+        const ids = Array.from(document.querySelectorAll('.dmEventCheck:checked')).map(cb => Number(cb.value));
+        if (!ids.length) {
+            alert(@json(__('Selecione ao menos um evento.')));
+            return;
+        }
+        if (!confirm(@json(__('Excluir os eventos deste dia? Eventos recorrentes serão excluídos por completo (série toda).')))) {
+            return;
+        }
+
+        try {
+            const result = await bulkDestroyEvents(ids);
+            alert(`${result.deleted ?? ids.length} ${@json(__('evento(s) excluído(s).'))}`);
+            await loadDependencies();
+            await fetchScheduleEvents();
+        } catch (error) {
+            alert(error.message);
+        }
+    });
+
+    document.getElementById('dayManagerDeleteAttendancesBtn')?.addEventListener('click', async () => {
+        const ids = Array.from(document.querySelectorAll('.dmAttendanceCheck:checked')).map(cb => Number(cb.value));
+        if (!ids.length) {
+            alert(@json(__('Selecione ao menos uma presença.')));
+            return;
+        }
+        if (!confirm(@json(__('Excluir as presenças deste dia? O progresso dos alunos será recalculado.')))) {
+            return;
+        }
+
+        try {
+            const result = await bulkDestroyAttendances(ids);
+            alert(`${result.deleted ?? ids.length} ${@json(__('presença(s) excluída(s).'))}`);
+            await loadDependencies();
+            await fetchScheduleEvents();
+        } catch (error) {
+            alert(error.message);
+        }
+    });
+
+    document.getElementById('dayManagerCreateHolidayBtn')?.addEventListener('click', async () => {
+        const dateIso = getDayManagerDate();
+        if (!dateIso) {
+            alert(@json(__('Escolha o dia primeiro.')));
+            return;
+        }
+
+        const titleInput = document.getElementById('dayManagerHolidayTitle');
+        const title = titleInput?.value?.trim() || @json(__('Feriado'));
+
+        try {
+            const res = await fetch('{{ route("api.schedule-events.store") }}', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': token,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    title,
+                    event_type: 'holiday',
+                    start_date: dateIso,
+                    end_date: dateIso,
+                    is_all_day: true,
+                    is_recurring_weekly: false,
+                    description: @json(__('Dia sem aula — aulas semanais ocultadas do planner.')),
+                    user_id: currentUserId
+                })
+            });
+
+            if (!res.ok) {
+                const error = await res.json().catch(() => null);
+                throw new Error(error?.message || @json(__('Erro ao cadastrar feriado')));
+            }
+
+            if (titleInput) {
+                titleInput.value = '';
+            }
+            alert(@json(__('Feriado cadastrado. Aulas semanais deste dia serão ocultadas do planner.')));
+            await fetchScheduleEvents();
+        } catch (error) {
+            alert(error.message);
+        }
+    });
+}
+
 async function init() {
     await loadDependencies();
+    const todayIso = toIsoDate(new Date());
+    const dayInput = document.getElementById('dayManagerDate');
+    if (dayInput && !dayInput.value) {
+        dayInput.value = todayIso;
+    }
     await fetchScheduleEvents();
 }
 

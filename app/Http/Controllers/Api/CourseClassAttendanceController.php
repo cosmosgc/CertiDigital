@@ -98,6 +98,44 @@ class CourseClassAttendanceController extends Controller
     }
 
     /**
+     * Remove multiple attendances at once, either by explicit ids or by date.
+     * Used by the schedule day-manager to clear holidays quickly.
+     */
+    public function destroyMany(Request $request)
+    {
+        $data = $request->validate([
+            'ids' => 'nullable|array|min:1|max:500',
+            'ids.*' => 'integer|exists:course_class_attendances,id',
+            'date' => 'nullable|date',
+        ]);
+
+        if (empty($data['ids']) && empty($data['date'])) {
+            return response()->json(
+                ['message' => 'Informe ids ou date para exclusão em massa.'],
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        }
+
+        $query = CourseClassAttendance::query();
+
+        if (! empty($data['ids'])) {
+            $query->whereIn('id', $data['ids']);
+        } else {
+            $query->whereDate('attendance_date', $data['date']);
+        }
+
+        $affectedClassIds = (clone $query)->pluck('course_class_id')->unique()->values();
+
+        $deleted = $query->delete();
+
+        foreach (CourseClass::whereIn('id', $affectedClassIds)->get() as $courseClass) {
+            $this->refreshClassEnrollments($courseClass);
+        }
+
+        return response()->json(['deleted' => $deleted], Response::HTTP_OK);
+    }
+
+    /**
      * Refresh enrollment progress for all enrollments in the course class.
      */
     private function refreshClassEnrollments(CourseClass $courseClass): void

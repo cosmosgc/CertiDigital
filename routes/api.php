@@ -55,6 +55,8 @@ Route::name('api.')->group(function () {
         Route::apiResource('students', StudentController::class)->only(['store', 'update', 'destroy']);
         Route::get('admin/students/{student}', [StudentController::class, 'detail'])->name('admin.students.show');
         Route::apiResource('instructors', InstructorController::class)->only(['store', 'update', 'destroy']);
+        Route::post('schedule-events/bulk-destroy', [ScheduleEventController::class, 'destroyMany'])->name('schedule-events.bulk-destroy');
+        Route::post('course-class-attendances/bulk-destroy', [CourseClassAttendanceController::class, 'destroyMany'])->name('course-class-attendances.bulk-destroy');
         Route::apiResource('schedule-events', ScheduleEventController::class)->only(['store', 'update', 'destroy']);
         Route::apiResource('certificates', CertificateController::class)->only(['store', 'update', 'destroy']);
         Route::apiResource('course-enrollments', CourseEnrollmentController::class);

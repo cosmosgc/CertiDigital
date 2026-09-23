@@ -41,7 +41,15 @@ class ScheduleEventController extends Controller
 
         $events = ScheduleEvent::with(['courseClass.course', 'courseClass.instructor'])
             ->when($courseClassIds->isNotEmpty(), function ($query) use ($courseClassIds) {
-                $query->whereIn('course_class_id', $courseClassIds);
+                // Keep global holidays visible even when filtering by class,
+                // so the planner can hide weekly classes on holiday dates.
+                $query->where(function ($inner) use ($courseClassIds) {
+                    $inner->whereIn('course_class_id', $courseClassIds)
+                        ->orWhere(function ($global) {
+                            $global->whereNull('course_class_id')
+                                ->where('event_type', 'holiday');
+                        });
+                });
             })
             ->when($request->filled('event_type'), function ($query) use ($request) {
                 $query->where('event_type', $request->string('event_type')->toString());
@@ -103,6 +111,22 @@ class ScheduleEventController extends Controller
         $scheduleEvent->delete();
 
         return response()->json(null, Response::HTTP_NO_CONTENT);
+    }
+
+    /**
+     * Remove multiple schedule events at once.
+     * Used by the day-manager to clear holidays quickly.
+     */
+    public function destroyMany(Request $request)
+    {
+        $data = $request->validate([
+            'ids' => 'required|array|min:1|max:500',
+            'ids.*' => 'integer|exists:schedule_events,id',
+        ]);
+
+        $deleted = ScheduleEvent::whereIn('id', $data['ids'])->delete();
+
+        return response()->json(['deleted' => $deleted], Response::HTTP_OK);
     }
 
     /**

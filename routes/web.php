@@ -35,6 +35,7 @@ Route::middleware('auth')->group(function () {
 
     // administrative pages (only for users with the `admin` role)
     Route::middleware('role:admin')->group(function () {
+        Route::get('/schedule-events/manage', [ScheduleEventController::class, 'manage'])->name('schedule-events.manage');
         Route::view('/students', 'students.index')->name('students.index');
         Route::get('/students/{student}', function (Student $student) {
             return view('students.show', compact('student'));
