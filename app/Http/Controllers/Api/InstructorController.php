@@ -68,7 +68,14 @@ class InstructorController extends Controller
      */
     public function destroy(Instructor $instructor)
     {
-        $instructor->delete();
+        try {
+            $instructor->delete();
+        } catch (\Illuminate\Database\QueryException $e) {
+            return response()->json(
+                ['message' => __('Instructor cannot be deleted because it is still referenced by other records.')],
+                Response::HTTP_CONFLICT
+            );
+        }
 
         return response()->json(null, Response::HTTP_NO_CONTENT);
     }

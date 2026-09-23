@@ -190,6 +190,20 @@ function formatHours(value) {
     return `${numeric % 1 === 0 ? numeric.toFixed(0) : numeric.toFixed(2)}h`;
 }
 
+function formatSessionDate(value) {
+    if (!value) return '';
+    const iso = String(value).slice(0, 10);
+    const parts = iso.split('-');
+    if (parts.length !== 3) return String(value);
+    const [year, month, day] = parts;
+    if (!year || !month || !day) return String(value);
+    return `${day}/${month}/${year}`;
+}
+
+function sessionDateOnly(value) {
+    return String(value ?? '').slice(0, 10);
+}
+
 function getProgressPercent(hours, workload) {
     const workloadValue = Number(workload ?? 0);
 
@@ -342,9 +356,9 @@ function renderClass(data) {
 
     const timeline = attendanceTimeline;
     const currentMonth = today.slice(0, 7);
-    const sorted = [...attendances].sort((a, b) => a.attendance_date.localeCompare(b.attendance_date));
-    const thisMonth = sorted.filter(a => a.attendance_date >= currentMonth + '-01' && a.attendance_date < currentMonth + '-99');
-    const earlier = sorted.filter(a => a.attendance_date < currentMonth + '-01');
+    const sorted = [...attendances].sort((a, b) => sessionDateOnly(a.attendance_date).localeCompare(sessionDateOnly(b.attendance_date)));
+    const thisMonth = sorted.filter(a => sessionDateOnly(a.attendance_date) >= currentMonth + '-01' && sessionDateOnly(a.attendance_date) < currentMonth + '-99');
+    const earlier = sorted.filter(a => sessionDateOnly(a.attendance_date) < currentMonth + '-01');
 
     const monthNames = {
         '01': 'Janeiro', '02': 'Fevereiro', '03': 'Março', '04': 'Abril',
@@ -371,7 +385,7 @@ function renderClass(data) {
 
         thisMonth.forEach((attendance, idx) => {
             const showUrl = attendanceShowBaseUrl.replace('__ATTENDANCE__', attendance.id);
-            const isToday = attendance.attendance_date === today;
+            const isToday = sessionDateOnly(attendance.attendance_date) === today;
             const isLast = idx === thisMonth.length - 1;
             const item = document.createElement('div');
             item.className = `relative pl-7 ${isLast ? '' : 'before:absolute before:left-[11px] before:top-4 before:h-[calc(100%+4px)] before:w-0.5 before:bg-gradient-to-b before:from-cyan-300 before:to-cyan-100'}`;
@@ -381,7 +395,7 @@ function renderClass(data) {
                     <div class="flex items-start justify-between gap-3">
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="rounded-md bg-cyan-100 px-2 py-0.5 text-xs font-semibold text-cyan-700">${attendance.attendance_date}</span>
+                                <span class="rounded-md bg-cyan-100 px-2 py-0.5 text-xs font-semibold text-cyan-700">${formatSessionDate(attendance.attendance_date)}</span>
                                 ${isToday ? `<span class="rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">{{ __('Hoje') }}</span>` : ''}
                             </div>
                             <p class="mt-2 text-lg font-semibold text-gray-900">${attendance.name || '{{ __('Sessão sem nome') }}'}</p>
@@ -434,13 +448,13 @@ function renderClass(data) {
         `;
         const pastList = document.createElement('div');
         pastList.className = 'hidden space-y-0.5';
-        earlier.sort((a, b) => b.attendance_date.localeCompare(a.attendance_date)).forEach(attendance => {
+        earlier.sort((a, b) => sessionDateOnly(b.attendance_date).localeCompare(sessionDateOnly(a.attendance_date))).forEach(attendance => {
             const showUrl = attendanceShowBaseUrl.replace('__ATTENDANCE__', attendance.id);
             const entry = document.createElement('div');
             entry.className = 'flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors';
             entry.innerHTML = `
                 <div class="h-2 w-2 shrink-0 rounded-full bg-gray-300"></div>
-                <span class="w-28 shrink-0 text-gray-500">${attendance.attendance_date}</span>
+                <span class="w-28 shrink-0 text-gray-500">${formatSessionDate(attendance.attendance_date)}</span>
                 <span class="flex-1 font-medium text-gray-700 truncate">${attendance.name || '{{ __('Sessão sem nome') }}'}</span>
                 <span class="w-16 text-right text-gray-500">${formatHours(attendance.duration_hours)}</span>
                 <span class="w-24 text-right text-gray-500">${attendance.records?.length || 0} {{ __('presentes') }}</span>

@@ -98,6 +98,7 @@
                         <p class="mt-1 text-sm text-gray-600">{{ __('Ao criar uma nova sessão, todos os alunos da turma começam marcados como presentes. Depois, você pode ajustar quem entrou atrasado ou faltou.') }}</p>
                         <p id="plannedHoursSection" class="mt-1 text-xs text-cyan-700 font-medium"></p>
                     </div>
+                    <button id="toggleAttendanceList" type="button" class="hidden shrink-0 rounded-xl bg-white px-4 py-2 text-sm font-medium text-cyan-700 ring-1 ring-gray-300 hover:bg-cyan-50"></button>
                 </div>
 
                 <form id="attendanceForm" class="mt-4 space-y-4">
@@ -122,13 +123,26 @@
                     </div>
                 </form>
 
-                <div id="attendanceList" class="mt-6 grid gap-3"></div>
+                <div id="attendanceList" class="mt-6 hidden grid gap-3"></div>
 
                 <div id="upcomingClassesSection" class="mt-6 hidden">
                     <hr class="mb-4 border-cyan-100">
                     <h4 class="text-sm font-semibold text-gray-900">{{ __('Próximas aulas previstas') }}</h4>
                     <p class="mt-1 text-xs text-gray-500">{{ __('Aulas da agenda que ainda não têm sessão de presença.') }}</p>
+                    <p class="mt-1 text-xs text-cyan-700">{{ __('Eventos recorrentes geram sugestões até a data final + 12 meses. Sem data final, valem 12 meses a partir de hoje — edite a data final abaixo para estender.') }}</p>
                     <div id="upcomingClassesList" class="mt-3 grid gap-2"></div>
+                </div>
+
+                <div id="scheduleEventsSection" class="mt-6 hidden">
+                    <hr class="mb-4 border-cyan-100">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <h4 class="text-sm font-semibold text-gray-900">{{ __('Agenda da turma') }}</h4>
+                            <p class="mt-1 text-xs text-gray-500">{{ __('Edite os eventos da agenda desta turma (ex.: estender a data final para gerar mais sugestões).') }}</p>
+                        </div>
+                        <a href="{{ route('schedule-events.index') }}" class="shrink-0 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-cyan-700 ring-1 ring-gray-200 hover:bg-cyan-50">{{ __('Abrir agenda') }}</a>
+                    </div>
+                    <div id="scheduleEventsList" class="mt-3 grid gap-3"></div>
                 </div>
             </section>
 
@@ -239,6 +253,16 @@ function formatHours(value) {
     return `${numeric % 1 === 0 ? numeric.toFixed(0) : numeric.toFixed(2)}h`;
 }
 
+function formatSessionDate(value) {
+    if (!value) return '';
+    const iso = String(value).slice(0, 10);
+    const parts = iso.split('-');
+    if (parts.length !== 3) return String(value);
+    const [year, month, day] = parts;
+    if (!year || !month || !day) return String(value);
+    return `${day}/${month}/${year}`;
+}
+
 function getWorkloadValue() {
     return Number(classData?.course?.workload_hours ?? 0);
 }
@@ -269,10 +293,12 @@ function getEventOccurrences(event) {
     const dates = [];
 
     if (event.is_recurring_weekly && event.weekday !== null && event.weekday !== undefined) {
+        // Default suggestion window: end_date (if set) plus 12 months,
+        // or 12 months from today when end_date is empty (null).
         const end = event.end_date
             ? parseDate(event.end_date)
             : parseDate(today);
-        end.setMonth(end.getMonth() + 6);
+        end.setMonth(end.getMonth() + 12);
 
         const current = new Date(start);
         while (current <= end) {
@@ -526,26 +552,50 @@ function renderClassData() {
     renderAttendanceList();
     renderSelectedAttendance();
     renderUpcomingClasses();
+    renderScheduleEvents();
 }
 
-function renderAttendanceList() {
-    const attendances = classData?.attendances || [];
+const toggleAttendanceListBtn = document.getElementById('toggleAttendanceList');
+let attendanceListExpanded = false;
 
-    if (!attendances.length) {
-        attendanceList.innerHTML = `
-            <div class="rounded-2xl border border-dashed border-cyan-300 bg-white/80 p-5 text-sm text-gray-500">
-                {{ __('Nenhuma sessão foi criada ainda.') }}
-            </div>
-        `;
+const attendanceMonthNames = {
+    '01': @json(__('Janeiro')), '02': @json(__('Fevereiro')), '03': @json(__('Março')),
+    '04': @json(__('Abril')), '05': @json(__('Maio')), '06': @json(__('Junho')),
+    '07': @json(__('Julho')), '08': @json(__('Agosto')), '09': @json(__('Setembro')),
+    '10': @json(__('Outubro')), '11': @json(__('Novembro')), '12': @json(__('Dezembro'))
+};
+
+function attendanceMonthLabel(key) {
+    const parts = String(key || '').split('-');
+    if (parts.length !== 2) return @json(__('Sem data'));
+    return `${attendanceMonthNames[parts[1]] || parts[1]} ${parts[0]}`;
+}
+
+function updateAttendanceToggleLabel() {
+    const count = (classData?.attendances || []).length;
+    if (!count) {
+        toggleAttendanceListBtn.classList.add('hidden');
         return;
     }
+    toggleAttendanceListBtn.classList.remove('hidden');
+    toggleAttendanceListBtn.textContent = attendanceListExpanded
+        ? @json(__('Ocultar sessões'))
+        : `${@json(__('Exibir sessões'))} (${count})`;
+}
 
-    attendanceList.innerHTML = attendances.map(attendance => `
+toggleAttendanceListBtn.addEventListener('click', () => {
+    attendanceListExpanded = !attendanceListExpanded;
+    attendanceList.classList.toggle('hidden', !attendanceListExpanded);
+    updateAttendanceToggleLabel();
+});
+
+function attendanceCardHTML(attendance) {
+    return `
         <article class="rounded-2xl border p-4 ${String(attendance.id) === String(selectedAttendanceId) ? 'border-cyan-500 bg-white shadow-sm' : 'border-cyan-100 bg-white/80'}">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                     <p class="text-sm font-semibold text-gray-900">${attendance.name}</p>
-                    <p class="mt-1 text-sm text-gray-500">${attendance.attendance_date} • ${formatHours(attendance.duration_hours)}</p>
+                    <p class="mt-1 text-sm text-gray-500">${formatSessionDate(attendance.attendance_date)} • ${formatHours(attendance.duration_hours)}</p>
                     <p class="mt-1 text-xs text-gray-500">{{ __('Presentes:') }} ${attendance.records?.length || 0}</p>
                 </div>
                 <div class="flex flex-wrap gap-2">
@@ -556,8 +606,58 @@ function renderAttendanceList() {
                 </div>
             </div>
         </article>
-    `).join('');
+    `;
 }
+
+function renderAttendanceList() {
+    const attendances = [...(classData?.attendances || [])]
+        .sort((a, b) => String(b.attendance_date ?? '').slice(0, 10).localeCompare(String(a.attendance_date ?? '').slice(0, 10)));
+
+    updateAttendanceToggleLabel();
+
+    if (!attendances.length) {
+        attendanceList.innerHTML = `
+            <div class="rounded-2xl border border-dashed border-cyan-300 bg-white/80 p-5 text-sm text-gray-500">
+                {{ __('Nenhuma sessão foi criada ainda.') }}
+            </div>
+        `;
+        return;
+    }
+
+    const groups = new Map();
+    attendances.forEach(attendance => {
+        const key = String(attendance.attendance_date || '').slice(0, 7) || 'sem-data';
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(attendance);
+    });
+
+    attendanceList.innerHTML = [...groups.entries()].map(([monthKey, items]) => {
+        const expanded = items.some(a => String(a.id) === String(selectedAttendanceId));
+        return `
+        <div class="overflow-hidden rounded-2xl border border-cyan-100" data-month="${monthKey}">
+            <button type="button" class="attendanceMonthToggle flex w-full items-center gap-3 bg-cyan-50/60 px-4 py-3 text-left text-sm font-semibold text-cyan-800 hover:bg-cyan-100">
+                <svg class="attendance-month-icon h-3 w-3 shrink-0 transition-transform duration-200" style="${expanded ? 'transform: rotate(90deg);' : ''}" viewBox="0 0 12 12" fill="none">
+                    <path d="M4 2L8 6L4 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>${attendanceMonthLabel(monthKey)} (${items.length})</span>
+            </button>
+            <div class="attendanceMonthBody grid gap-3 bg-white p-3 ${expanded ? '' : 'hidden'}">
+                ${items.map(attendanceCardHTML).join('')}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+attendanceList.addEventListener('click', (e) => {
+    const monthToggle = e.target.closest('.attendanceMonthToggle');
+    if (monthToggle) {
+        const body = monthToggle.parentElement.querySelector('.attendanceMonthBody');
+        body.classList.toggle('hidden');
+        monthToggle.querySelector('.attendance-month-icon').style.transform =
+            body.classList.contains('hidden') ? '' : 'rotate(90deg)';
+        return;
+    }
+});
 
 function renderSelectedAttendance() {
     const attendance = getSelectedAttendance();
@@ -576,7 +676,7 @@ function renderSelectedAttendance() {
 
     attendanceRecordForm.classList.remove('hidden');
     selectedAttendanceTitle.textContent = attendance.name;
-    selectedAttendanceMeta.textContent = `${attendance.attendance_date} • ${formatHours(attendance.duration_hours)} • ${(attendance.records || []).length} {{ __('presenças') }}`;
+    selectedAttendanceMeta.textContent = `${formatSessionDate(attendance.attendance_date)} • ${formatHours(attendance.duration_hours)} • ${(attendance.records || []).length} {{ __('presenças') }}`;
     populateAttendanceRecordOptions();
 
     if (!attendance.records?.length) {
@@ -693,7 +793,7 @@ attendanceList.addEventListener('click', async (e) => {
 
         attendanceForm.attendance_id.value = attendance.id;
         attendanceForm.name.value = attendance.name ?? '';
-        attendanceForm.attendance_date.value = attendance.attendance_date;
+        attendanceForm.attendance_date.value = String(attendance.attendance_date ?? '').slice(0, 10);
         attendanceForm.duration_hours.value = attendance.duration_hours ?? 1;
         cancelAttendanceEditBtn.classList.remove('hidden');
     }
@@ -847,6 +947,8 @@ attendanceForm.addEventListener('submit', async (e) => {
     if (res.ok) {
         const data = await res.json().catch(() => null);
         selectedAttendanceId = data?.id || selectedAttendanceId;
+        attendanceListExpanded = true;
+        attendanceList.classList.remove('hidden');
         resetAttendanceForm();
         await fetchClassData();
     } else {
@@ -913,8 +1015,8 @@ function renderUpcomingClasses() {
     section.classList.remove('hidden');
     list.innerHTML = upcoming.map(item => `
         <div class="flex items-center gap-3 rounded-xl border border-cyan-100 bg-cyan-50/30 px-4 py-3 text-sm">
-            <span class="shrink-0 rounded-md bg-cyan-100 px-2 py-1 text-xs font-semibold text-cyan-700">${item.date}</span>
-            <span class="flex-1 font-medium text-gray-800">${item.title || item.date}</span>
+            <span class="shrink-0 rounded-md bg-cyan-100 px-2 py-1 text-xs font-semibold text-cyan-700">${formatSessionDate(item.date)}</span>
+            <span class="flex-1 font-medium text-gray-800">${item.title || formatSessionDate(item.date)}</span>
             <span class="shrink-0 text-gray-500">${formatHours(item.duration)}</span>
             <button type="button" class="createUpcomingBtn shrink-0 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700" data-date="${item.date}" data-duration="${item.duration}" data-title="${item.title || ''}">
                 {{ __('Criar sessão') }}
@@ -922,6 +1024,149 @@ function renderUpcomingClasses() {
         </div>
     `).join('');
 }
+
+const scheduleWeekdayLabels = [
+    @json(__('Domingo')),
+    @json(__('Segunda-feira')),
+    @json(__('Terça-feira')),
+    @json(__('Quarta-feira')),
+    @json(__('Quinta-feira')),
+    @json(__('Sexta-feira')),
+    @json(__('Sábado')),
+];
+
+function suggestionWindowEnd(event) {
+    const base = event.end_date ? String(event.end_date).slice(0, 10) : today;
+    const end = parseDate(base);
+    end.setMonth(end.getMonth() + 12);
+    return fmtDate(end);
+}
+
+function renderScheduleEvents() {
+    const events = classData?.schedule_events || [];
+    const section = document.getElementById('scheduleEventsSection');
+    const list = document.getElementById('scheduleEventsList');
+
+    if (!events.length) {
+        section.classList.add('hidden');
+        return;
+    }
+
+    section.classList.remove('hidden');
+    list.innerHTML = events.map(event => {
+        const startDate = String(event.start_date ?? '').slice(0, 10);
+        const endDate = String(event.end_date ?? '').slice(0, 10);
+        const startTime = String(event.start_time ?? '').slice(0, 5);
+        const endTime = String(event.end_time ?? '').slice(0, 5);
+        const weekday = event.weekday ?? '';
+        const windowNote = event.is_recurring_weekly
+            ? (event.end_date
+                ? @json(__('Sugestões até')) + ' ' + formatSessionDate(suggestionWindowEnd(event)) + ' (' + @json(__('data final + 12 meses')) + ')'
+                : @json(__('Sem data final: sugestões até')) + ' ' + formatSessionDate(suggestionWindowEnd(event)) + ' (' + @json(__('12 meses a partir de hoje')) + ')')
+            : @json(__('Evento de data única'));
+
+        return `
+        <div class="rounded-2xl border border-cyan-100 bg-white p-4" data-event-id="${event.id}">
+            <div class="flex items-start justify-between gap-3">
+                <p class="text-sm font-semibold text-gray-900">${escapeHtml(event.title || @json(__('Sem título')))}</p>
+                <span class="shrink-0 text-xs text-cyan-700">${windowNote}</span>
+            </div>
+            <div class="mt-3 grid gap-3 md:grid-cols-2">
+                <div>
+                    <label class="block text-xs font-medium text-gray-600">{{ __('Título') }}</label>
+                    <input type="text" data-field="title" value="${escapeHtml(event.title || '')}" class="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600">{{ __('Local') }}</label>
+                    <input type="text" data-field="location" value="${escapeHtml(event.location || '')}" class="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600">{{ __('Data inicial') }}</label>
+                    <input type="date" data-field="start_date" value="${startDate}" class="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600">{{ __('Data final (vazio = +12 meses)') }}</label>
+                    <div class="mt-1 flex gap-2">
+                        <input type="date" data-field="end_date" value="${endDate}" class="block w-full rounded-xl border-gray-300 text-sm shadow-sm">
+                        <button type="button" class="clearScheduleEndBtn shrink-0 rounded-xl bg-white px-3 py-2 text-xs font-medium text-gray-600 ring-1 ring-gray-300">{{ __('Limpar') }}</button>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600">{{ __('Dia da semana') }}</label>
+                    <select data-field="weekday" class="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm">
+                        ${scheduleWeekdayLabels.map((label, idx) => `<option value="${idx}" ${String(weekday) === String(idx) ? 'selected' : ''}>${label}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600">{{ __('Início') }}</label>
+                        <input type="time" data-field="start_time" value="${startTime}" class="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600">{{ __('Fim') }}</label>
+                        <input type="time" data-field="end_time" value="${endTime}" class="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm">
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+                <label class="inline-flex items-center gap-2 text-xs text-gray-700">
+                    <input type="checkbox" data-field="is_recurring_weekly" ${event.is_recurring_weekly ? 'checked' : ''} class="rounded border-gray-300 text-cyan-600 shadow-sm">
+                    {{ __('Repetir toda semana') }}
+                </label>
+                <button type="button" class="saveScheduleEventBtn ml-auto rounded-xl bg-cyan-600 px-4 py-2 text-xs font-semibold text-white">{{ __('Salvar evento') }}</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+document.getElementById('scheduleEventsList')?.addEventListener('click', async (e) => {
+    const card = e.target.closest('[data-event-id]');
+    if (!card) return;
+
+    if (e.target.closest('.clearScheduleEndBtn')) {
+        card.querySelector('[data-field="end_date"]').value = '';
+        return;
+    }
+
+    const btn = e.target.closest('.saveScheduleEventBtn');
+    if (!btn) return;
+
+    const get = (field) => card.querySelector(`[data-field="${field}"]`);
+    const payload = {
+        title: get('title').value || null,
+        location: get('location').value || null,
+        start_date: get('start_date').value || null,
+        end_date: get('end_date').value || null,
+        weekday: get('weekday').value === '' ? null : Number(get('weekday').value),
+        is_recurring_weekly: get('is_recurring_weekly').checked,
+        start_time: get('start_time').value || null,
+        end_time: get('end_time').value || null,
+    };
+
+    btn.disabled = true;
+    try {
+        const res = await fetch(`{{ route("api.schedule-events.update", ["schedule_event" => "__ID__"]) }}`.replace('__ID__', card.dataset.eventId), {
+            method: 'PUT',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': token,
+                'X-User-Id': currentUserId,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            await fetchClassData();
+        } else {
+            const error = await res.json().catch(() => null);
+            alert(error?.message || @json(__('Erro ao salvar evento da agenda')));
+        }
+    } finally {
+        btn.disabled = false;
+    }
+});
 
 document.getElementById('upcomingClassesList')?.addEventListener('click', async (e) => {
     const btn = e.target.closest('.createUpcomingBtn');

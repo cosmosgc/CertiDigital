@@ -126,16 +126,22 @@ instructorsTableBody.addEventListener('click', async (e) => {
     }
 
     if (e.target.classList.contains('deleteBtn')) {
-        if (!confirm(@json(__('Excluir instrutor?')))) return;
+        if (!confirm(@json(__('Excluir instrutor? Certificados, contratos e pagamentos vinculados também serão excluídos.')))) return;
         const id = e.target.dataset.id;
-        await fetch(`{{ route("api.instructors.destroy", ["instructor" => "__ID__"]) }}`.replace('__ID__', id), {
+        const res = await fetch(`{{ route("api.instructors.destroy", ["instructor" => "__ID__"]) }}`.replace('__ID__', id), {
             method: 'DELETE',
             headers: {
                 'X-CSRF-TOKEN': token,
+                'X-User-Id': currentUserId,
                 'Accept': 'application/json'
             },
             credentials: 'same-origin'
         });
+        if (!res.ok) {
+            const error = await res.json().catch(() => null);
+            alert(error?.message || @json(__('Erro ao excluir instrutor')));
+            return;
+        }
         fetchInstructors();
     }
 });

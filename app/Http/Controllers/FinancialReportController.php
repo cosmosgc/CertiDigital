@@ -219,6 +219,85 @@ class FinancialReportController extends Controller
             $cursor->addMonth();
         }
 
+        // --- Month-by-month comparison (range months + reference month) with differences ---
+        $compareKeys = [];
+        $c = $rangeStart->copy()->startOfMonth();
+        $endCopy = $rangeEnd->copy()->startOfMonth();
+        while ($c->lte($endCopy)) {
+            $compareKeys[$c->format('Y-m')] = $c->copy();
+            $c->addMonth();
+        }
+        $compareKeys[$referenceMonth->copy()->startOfMonth()->format('Y-m')] = $referenceMonth->copy()->startOfMonth();
+        ksort($compareKeys);
+
+        $monthComparison = [];
+        foreach ($compareKeys as $key => $monthDate) {
+            $s = $monthDate->copy()->startOfMonth();
+            $e = $monthDate->copy()->endOfMonth();
+
+            $bTotal = (float) StudentBilling::whereBetween('reference_month', [$s->toDateString(), $e->toDateString()])
+                ->when(count($excludedClassIds) > 0, fn($q) => $q->whereNotIn('course_class_id', $excludedClassIds))
+                ->sum('amount');
+            $bPaid = (float) StudentBilling::whereBetween('reference_month', [$s->toDateString(), $e->toDateString()])
+                ->where('status', 'paid')
+                ->when(count($excludedClassIds) > 0, fn($q) => $q->whereNotIn('course_class_id', $excludedClassIds))
+                ->sum('amount');
+            $bPending = (float) StudentBilling::whereBetween('reference_month', [$s->toDateString(), $e->toDateString()])
+                ->where('status', 'pending')
+                ->when(count($excludedClassIds) > 0, fn($q) => $q->whereNotIn('course_class_id', $excludedClassIds))
+                ->sum('amount');
+            $iTotal = $this->calculateInstructorTotalForPeriod($s, $e, $excludedClassIds);
+            $iPaid = (float) InstructorPayment::whereBetween('reference_month', [$s->toDateString(), $e->toDateString()])
+                ->whereNotNull('paid_at')
+                ->sum('amount');
+            $net = round($bTotal - $iTotal, 2);
+
+            $monthComparison[] = [
+                'key' => $key,
+                'label' => $monthDate->translatedFormat('M/Y'),
+                'full_label' => $monthDate->translatedFormat('F/Y'),
+                'is_reference' => $monthDate->format('Y-m') === $referenceMonth->format('Y-m'),
+                'billing_total' => $bTotal,
+                'billing_paid' => $bPaid,
+                'billing_pending' => $bPending,
+                'instructor_total' => $iTotal,
+                'instructor_paid' => $iPaid,
+                'instructor_pending' => round(max($iTotal - $iPaid, 0), 2),
+                'net' => $net,
+                // diffs filled below
+                'diff_billing' => null,
+                'diff_billing_pct' => null,
+                'diff_instructor' => null,
+                'diff_instructor_pct' => null,
+                'diff_instructor_paid' => null,
+                'diff_instructor_paid_pct' => null,
+                'diff_net' => null,
+                'diff_net_pct' => null,
+            ];
+        }
+
+        foreach ($monthComparison as $idx => &$row) {
+            if ($idx === 0) continue;
+            $prev = $monthComparison[$idx - 1];
+            $row['diff_billing'] = round($row['billing_total'] - $prev['billing_total'], 2);
+            $row['diff_billing_pct'] = $prev['billing_total'] != 0
+                ? round((($row['billing_total'] - $prev['billing_total']) / abs($prev['billing_total'])) * 100, 1)
+                : null;
+            $row['diff_instructor'] = round($row['instructor_total'] - $prev['instructor_total'], 2);
+            $row['diff_instructor_pct'] = $prev['instructor_total'] != 0
+                ? round((($row['instructor_total'] - $prev['instructor_total']) / abs($prev['instructor_total'])) * 100, 1)
+                : null;
+            $row['diff_instructor_paid'] = round($row['instructor_paid'] - $prev['instructor_paid'], 2);
+            $row['diff_instructor_paid_pct'] = $prev['instructor_paid'] != 0
+                ? round((($row['instructor_paid'] - $prev['instructor_paid']) / abs($prev['instructor_paid'])) * 100, 1)
+                : null;
+            $row['diff_net'] = round($row['net'] - $prev['net'], 2);
+            $row['diff_net_pct'] = $prev['net'] != 0
+                ? round((($row['net'] - $prev['net']) / abs($prev['net'])) * 100, 1)
+                : null;
+        }
+        unset($row);
+
         $monthlyLabels = [];
         $monthlyBillingValues = [];
         $monthlyInstructorValues = [];
@@ -309,6 +388,69 @@ class FinancialReportController extends Controller
             ];
         }
 
+        // --- Daily comparison across compared months (aulas + horas per day) ---
+        $dailyCompareMonths = [];
+        $dailyCompareMaxDays = 1;
+        foreach ($compareKeys as $key => $monthDate) {
+            $s = $monthDate->copy()->startOfMonth();
+            $e = $monthDate->copy()->endOfMonth();
+
+            $sessionsByDate = CourseClassAttendance::whereBetween('attendance_date', [$s->toDateString(), $e->toDateString()])
+                ->when(count($excludedClassIds) > 0, fn($q) => $q->whereNotIn('course_class_id', $excludedClassIds))
+                ->selectRaw('attendance_date, COUNT(*) as session_count, SUM(duration_hours) as total_hours')
+                ->groupBy('attendance_date')
+                ->get()
+                ->keyBy(fn($item) => $item->attendance_date instanceof \Carbon\Carbon ? $item->attendance_date->toDateString() : $item->attendance_date);
+
+            $dim = $monthDate->daysInMonth;
+            $dailyCompareMaxDays = max($dailyCompareMaxDays, $dim);
+
+            $days = [];
+            $totalSessions = 0;
+            $totalHours = 0.0;
+            $weekdays = [];
+            $weekdayCounts = array_fill(0, 7, 0);
+            for ($w = 0; $w < 7; $w++) $weekdays[$w] = ['sessions' => 0, 'hours' => 0.0];
+            for ($d = 1; $d <= $dim; $d++) {
+                $dateObj = $monthDate->copy()->day($d);
+                $dateStr = $dateObj->toDateString();
+                $sc = (int) ($sessionsByDate[$dateStr]->session_count ?? 0);
+                $hh = (float) ($sessionsByDate[$dateStr]->total_hours ?? 0);
+                $days[$d] = ['sessions' => $sc, 'hours' => round($hh, 2)];
+                $totalSessions += $sc;
+                $totalHours += $hh;
+                $wd = $dateObj->dayOfWeek;
+                $weekdayCounts[$wd]++;
+                $weekdays[$wd]['sessions'] += $sc;
+                $weekdays[$wd]['hours'] += $hh;
+            }
+            foreach ($weekdays as &$wRow) $wRow['hours'] = round($wRow['hours'], 2);
+            unset($wRow);
+
+            $dailyCompareMonths[] = [
+                'key' => $key,
+                'label' => $monthDate->translatedFormat('M/Y'),
+                'full_label' => $monthDate->translatedFormat('F/Y'),
+                'is_reference' => $monthDate->format('Y-m') === $referenceMonth->format('Y-m'),
+                'days_in_month' => $dim,
+                'days' => $days,
+                'weekdays' => $weekdays,
+                'weekday_counts' => $weekdayCounts,
+                'total_sessions' => $totalSessions,
+                'total_hours' => round($totalHours, 2),
+                'diff_sessions' => null,
+                'diff_hours' => null,
+            ];
+        }
+
+        foreach ($dailyCompareMonths as $idx => &$dcRow) {
+            if ($idx === 0) continue;
+            $prev = $dailyCompareMonths[$idx - 1];
+            $dcRow['diff_sessions'] = $dcRow['total_sessions'] - $prev['total_sessions'];
+            $dcRow['diff_hours'] = round($dcRow['total_hours'] - $prev['total_hours'], 2);
+        }
+        unset($dcRow);
+
         // --- Distribution data ---
         $billingStatusAmount = [
             'paid' => $billingPaid,
@@ -347,6 +489,9 @@ class FinancialReportController extends Controller
             'rangeLabels' => $rangeLabels,
             'rangeBillingValues' => $rangeBillingValues,
             'rangeInstructorValues' => $rangeInstructorValues,
+            'monthComparison' => $monthComparison,
+            'dailyCompareMonths' => $dailyCompareMonths,
+            'dailyCompareMaxDays' => $dailyCompareMaxDays,
             'billingCanceled' => $billingCanceled,
             'courseBilling' => $courseBilling,
             'heatmapDays' => $heatmapDays,

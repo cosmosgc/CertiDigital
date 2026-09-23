@@ -157,7 +157,10 @@ class ScheduleEventController extends Controller
             $data['end_time'] = null;
         }
 
-        if ($isRecurring && empty($data['end_date'])) {
+        // On create only: default a missing end_date to end of the start year.
+        // On update, a cleared end_date is kept as null (frontend treats
+        // null as a rolling suggestion window) instead of being refilled.
+        if (!$partial && $isRecurring && empty($data['end_date'])) {
             $startDate = $data['start_date'] ?? $request->input('start_date');
 
             if ($startDate) {
