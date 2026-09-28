@@ -280,8 +280,8 @@
                 </div>
 
                 {{-- Weekday table (per month: aulas + horas by day of week) --}}
-                <h4 class="mt-4 text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">{{ __('Por dia da semana — aulas e horas') }}</h4>
-                <div class="mt-2 overflow-x-auto rounded-xl border border-slate-200">
+                <h4 class="no-print mt-4 text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">{{ __('Por dia da semana — aulas e horas') }}</h4>
+                <div class="no-print mt-2 overflow-x-auto rounded-xl border border-slate-200">
                     <table class="min-w-full divide-y divide-slate-200 text-xs">
                         <thead>
                             <tr class="bg-slate-100">
@@ -367,12 +367,12 @@
                         </tfoot>
                     </table>
                 </div>
-                <div class="mt-3 h-[200px]">
+                <div class="no-print mt-3 h-[200px]">
                     <canvas id="weekdayCompareChart"></canvas>
                 </div>
 
                 {{-- Day-by-day table --}}
-                <div class="mt-3 overflow-x-auto rounded-xl border border-slate-200">
+                <div class="no-print mt-3 overflow-x-auto rounded-xl border border-slate-200">
                     <table class="min-w-full divide-y divide-slate-200 text-xs">
                         <thead>
                             <tr class="bg-slate-100">
@@ -461,7 +461,7 @@
                     </table>
                 </div>
 
-                <div class="mt-3 h-[220px]">
+                <div class="no-print mt-3 h-[220px]">
                     <canvas id="dailyCompareChart"></canvas>
                 </div>
             </section>
