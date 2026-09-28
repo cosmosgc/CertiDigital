@@ -463,6 +463,14 @@ class FinancialReportController extends Controller
         $courses = Course::orderBy('title')->get();
         $allClasses = CourseClass::with('course')->orderBy('name')->get();
 
+        // --- Instructor-only mode: on when there is no student invoice at all ---
+        // Useful for instructors managing their own pay (no student billing in the system).
+        // Manual override via ?mode=instructor (force) or ?mode=full (force full view).
+        $mode = (string) $request->query('mode', 'auto');
+        $hasStudentBilling = StudentBilling::exists();
+        $instructorOnly = $mode === 'instructor'
+            || ($mode !== 'full' && ! $hasStudentBilling);
+
         return view('financial.reports', [
             'referenceMonth' => $referenceMonth,
             'instructorRows' => $instructorRows,
@@ -503,6 +511,9 @@ class FinancialReportController extends Controller
             'allClasses' => $allClasses,
             'excludeCourses' => $excludeCourses,
             'excludeClasses' => $excludeClasses,
+            'hasStudentBilling' => $hasStudentBilling,
+            'instructorOnly' => $instructorOnly,
+            'mode' => $mode,
         ]);
     }
 

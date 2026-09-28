@@ -3,9 +3,24 @@
         <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-300">{{ __('Financeiro') }}</p>
-                <h2 class="mt-1 text-3xl font-semibold text-white">{{ __('Relatórios de ganhos e faturamento') }}</h2>
+                <h2 class="mt-1 text-3xl font-semibold text-white">
+                    {{ $instructorOnly ? __('Meus ganhos como instrutor') : __('Relatórios de ganhos e faturamento') }}
+                </h2>
+                @if ($instructorOnly)
+                    <p class="mt-1.5 inline-flex items-center gap-2 rounded-full bg-cyan-500/15 px-3 py-1 text-xs font-medium text-cyan-200">
+                        {{ __('Modo instrutor — sem faturas de alunos no sistema') }}
+                        <a href="{{ route('financial.reports', array_merge(request()->query(), ['mode' => 'full'])) }}" class="underline hover:text-white">{{ __('ver completo') }}</a>
+                    </p>
+                @elseif (!$hasStudentBilling)
+                    <p class="mt-1.5 text-xs text-slate-400">{{ __('Sem faturas de alunos — ative o modo instrutor para uma visão simplificada.') }}
+                        <a href="{{ route('financial.reports', array_merge(request()->query(), ['mode' => 'instructor'])) }}" class="text-cyan-300 underline hover:text-white">{{ __('ativar') }}</a>
+                    </p>
+                @endif
             </div>
             <form method="GET" action="{{ route('financial.reports') }}" class="flex flex-wrap items-end gap-x-4 gap-y-2">
+                @if (in_array($mode, ['instructor', 'full'], true))
+                    <input type="hidden" name="mode" value="{{ $mode }}" />
+                @endif
                 <div>
                     <label for="month" class="block text-xs text-slate-300">{{ __('Mês') }}</label>
                     <input id="month" type="month" name="month" value="{{ $referenceMonth->format('Y-m') }}" class="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
@@ -59,6 +74,9 @@
                         <input type="hidden" name="month" value="{{ $referenceMonth->format('Y-m') }}">
                         <input type="hidden" name="start" value="{{ $rangeStart->format('Y-m') }}">
                         <input type="hidden" name="end" value="{{ $rangeEnd->format('Y-m') }}">
+                        @if (in_array($mode, ['instructor', 'full'], true))
+                            <input type="hidden" name="mode" value="{{ $mode }}">
+                        @endif
                         <div>
                             <label class="block text-xs font-medium text-slate-500 mb-1">{{ __('Excluir cursos') }}</label>
                             <select name="exclude_courses[]" multiple class="h-32 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs">
@@ -87,6 +105,31 @@
             </details>
 
             {{-- ====== KPI Cards ====== --}}
+            @if ($instructorOnly)
+                @php
+                    $monthSessions = (int) $instructorRows->sum('total_sessions');
+                    $monthHours = (float) $instructorRows->sum('total_hours');
+                @endphp
+                <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <article class="rounded-2xl border border-violet-200 bg-violet-50/90 p-4 shadow-sm">
+                        <p class="text-[10px] uppercase tracking-[0.15em] text-violet-700">{{ __('A receber (mês)') }}</p>
+                        <p class="mt-1.5 text-2xl font-bold text-violet-700">R$ {{ number_format($instructorTotal, 2, ',', '.') }}</p>
+                        <p class="mt-0.5 text-xs text-slate-500">{{ $monthSessions }} {{ __('aulas') }} • {{ number_format($monthHours, 1, ',', '.') }}h</p>
+                    </article>
+                    <article class="rounded-2xl border border-emerald-200 bg-emerald-50/90 p-4 shadow-sm">
+                        <p class="text-[10px] uppercase tracking-[0.15em] text-emerald-700">{{ __('Instr. pago (mês)') }}</p>
+                        <p class="mt-1.5 text-2xl font-bold text-emerald-700">R$ {{ number_format($instructorPaidTotal, 2, ',', '.') }}</p>
+                    </article>
+                    <article class="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 shadow-sm">
+                        <p class="text-[10px] uppercase tracking-[0.15em] text-amber-700">{{ __('A faltar (mês)') }}</p>
+                        <p class="mt-1.5 text-2xl font-bold text-amber-700">R$ {{ number_format($instructorPendingTotal, 2, ',', '.') }}</p>
+                    </article>
+                    <article class="rounded-2xl border border-cyan-200 bg-cyan-50/90 p-4 shadow-sm">
+                        <p class="text-[10px] uppercase tracking-[0.15em] text-cyan-700">{{ __('Aulas / Horas (mês)') }}</p>
+                        <p class="mt-1.5 text-2xl font-bold text-slate-900">{{ $monthSessions }} <span class="text-base font-semibold text-slate-500">{{ __('aulas') }}</span> • {{ number_format($monthHours, 1, ',', '.') }}h</p>
+                    </article>
+                </div>
+            @else
             <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
                 <article class="rounded-2xl border border-white/70 bg-white/90 p-4 shadow-sm">
                     <p class="text-[10px] uppercase tracking-[0.15em] text-slate-400">{{ __('Faturado') }}</p>
@@ -109,6 +152,7 @@
                     <p class="mt-1.5 text-2xl font-bold text-violet-700">R$ {{ number_format($instructorTotal, 2, ',', '.') }}</p>
                 </article>
             </div>
+            @endif
 
             {{-- ====== Mini Calendar + Heatmap ====== --}}
             @php
@@ -179,9 +223,9 @@
                         <summary class="flex cursor-pointer items-center justify-between text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
                             <span>
                                 {{ __('Detalhamento diário') }}
-                                @if ($diasComAulas > 0 || $diasComFinanceiro > 0)
+                                @if ($diasComAulas > 0 || (!$instructorOnly && $diasComFinanceiro > 0))
                                     <span class="ml-2 text-[9px] font-normal text-slate-400 lowercase">
-                                        {{ $diasComAulas > 0 ? $diasComAulas . ' ' . __('dias com aulas') : '' }}{{ $diasComAulas > 0 && $diasComFinanceiro > 0 ? ', ' : '' }}{{ $diasComFinanceiro > 0 ? $diasComFinanceiro . ' ' . __('com financeiro') : '' }}
+                                        {{ $diasComAulas > 0 ? $diasComAulas . ' ' . __('dias com aulas') : '' }}{{ $diasComAulas > 0 && !$instructorOnly && $diasComFinanceiro > 0 ? ', ' : '' }}{{ !$instructorOnly && $diasComFinanceiro > 0 ? $diasComFinanceiro . ' ' . __('com financeiro') : '' }}
                                     </span>
                                 @endif
                             </span>
@@ -212,10 +256,10 @@
                                         @if ($hasSession)
                                             <div class="text-[8px] leading-tight text-cyan-700">{{ $dayData['session_count'] }}a {{ number_format($dayData['session_hours'], 1, ',', '.') }}h</div>
                                         @endif
-                                        @if ($hasBilling)
+                                        @if (!$instructorOnly && $hasBilling)
                                             <div class="text-[8px] leading-tight text-amber-700 truncate">R$ {{ number_format($dayData['billing_due'], 0, ',', '.') }}</div>
                                         @endif
-                                        @if ($hasPaid)
+                                        @if (!$instructorOnly && $hasPaid)
                                             <div class="text-[8px] leading-tight text-emerald-700 truncate">R$ {{ number_format($dayData['paid_amount'], 0, ',', '.') }}</div>
                                         @endif
                                     </div>
@@ -225,10 +269,10 @@
                             <div class="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-[10px] font-semibold text-slate-800">
                                 <span>{{ __('Total') }}:</span>
                                 <span class="text-cyan-700">{{ $totalAulas }} {{ __('aulas') }} / {{ number_format($totalHoras, 1, ',', '.') }}h</span>
-                                @if ($totalBilling > 0)
+                                @if (!$instructorOnly && $totalBilling > 0)
                                     <span class="text-amber-700">{{ __('Faturado') }}: R$ {{ number_format($totalBilling, 2, ',', '.') }}</span>
                                 @endif
-                                @if ($totalPaid > 0)
+                                @if (!$instructorOnly && $totalPaid > 0)
                                     <span class="text-emerald-700">{{ __('Recebido') }}: R$ {{ number_format($totalPaid, 2, ',', '.') }}</span>
                                 @endif
                             </div>
@@ -467,6 +511,22 @@
             </section>
 
             {{-- ====== Period Summary Cards ====== --}}
+            @if ($instructorOnly)
+            <div class="grid gap-3 sm:grid-cols-3">
+                <article class="rounded-2xl border border-violet-200 bg-violet-50/90 p-4">
+                    <p class="text-[10px] uppercase tracking-[0.15em] text-violet-700">{{ __('A receber (período)') }}</p>
+                    <p class="mt-1.5 text-2xl font-bold text-violet-700">R$ {{ number_format($rangeInstructorTotal, 2, ',', '.') }}</p>
+                </article>
+                <article class="rounded-2xl border border-emerald-200 bg-emerald-50/90 p-4">
+                    <p class="text-[10px] uppercase tracking-[0.15em] text-emerald-700">{{ __('Instr. pago (período)') }}</p>
+                    <p class="mt-1.5 text-2xl font-bold text-emerald-700">R$ {{ number_format($rangeInstructorPaidTotal, 2, ',', '.') }}</p>
+                </article>
+                <article class="rounded-2xl border border-amber-200 bg-amber-50/90 p-4">
+                    <p class="text-[10px] uppercase tracking-[0.15em] text-amber-700">{{ __('A faltar (período)') }}</p>
+                    <p class="mt-1.5 text-2xl font-bold text-amber-700">R$ {{ number_format($rangeInstructorPendingTotal, 2, ',', '.') }}</p>
+                </article>
+            </div>
+            @else
             <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <article class="rounded-2xl border border-cyan-200 bg-cyan-50/90 p-4">
                     <p class="text-[10px] uppercase tracking-[0.15em] text-cyan-700">{{ __('Faturado (período)') }}</p>
@@ -485,6 +545,7 @@
                     <p class="mt-1.5 text-2xl font-bold text-violet-700">R$ {{ number_format($rangeInstructorTotal, 2, ',', '.') }}</p>
                 </article>
             </div>
+            @endif
 
             {{-- ====== Month Comparison (with differences) ====== --}}
             <section class="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-sm">
@@ -500,16 +561,22 @@
                         <thead>
                             <tr class="bg-slate-100">
                                 <th class="px-4 py-2.5 text-left font-semibold text-slate-700">{{ __('Mês') }}</th>
+                                @if (!$instructorOnly)
                                 <th class="px-4 py-2.5 text-right font-semibold text-slate-700">{{ __('Faturado') }}</th>
                                 <th class="px-4 py-2.5 text-right font-semibold text-slate-700">{{ __('Recebido') }}</th>
-                                <th class="px-4 py-2.5 text-right font-semibold text-slate-700">{{ __('Custo instr.') }}</th>
+                                @endif
+                                <th class="px-4 py-2.5 text-right font-semibold text-slate-700">{{ $instructorOnly ? __('A receber') : __('Custo instr.') }}</th>
                                 <th class="px-4 py-2.5 text-right font-semibold text-slate-700">{{ __('Instr. pago') }}</th>
-                                <th class="px-4 py-2.5 text-right font-semibold text-slate-700">{{ __('Instr. pendente') }}</th>
+                                <th class="px-4 py-2.5 text-right font-semibold text-slate-700">{{ $instructorOnly ? __('A faltar') : __('Instr. pendente') }}</th>
+                                @if (!$instructorOnly)
                                 <th class="px-4 py-2.5 text-right font-semibold text-slate-700">{{ __('Resultado') }}</th>
                                 <th class="px-4 py-2.5 text-right font-semibold text-slate-700">{{ __('Δ Faturado') }}</th>
+                                @endif
                                 <th class="px-4 py-2.5 text-right font-semibold text-slate-700">{{ __('Δ Custo') }}</th>
                                 <th class="px-4 py-2.5 text-right font-semibold text-slate-700">{{ __('Δ Pago instr.') }}</th>
+                                @if (!$instructorOnly)
                                 <th class="px-4 py-2.5 text-right font-semibold text-slate-700">{{ __('Δ Resultado') }}</th>
+                                @endif
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
@@ -524,19 +591,28 @@
                                             <span class="ml-1 rounded-full bg-cyan-100 px-2 py-0.5 text-[10px] font-semibold text-cyan-700">{{ __('ref') }}</span>
                                         @endif
                                     </td>
+                                    @if (!$instructorOnly)
                                     <td class="px-4 py-2.5 text-right tabular-nums text-slate-700">R$ {{ number_format($cmp['billing_total'], 2, ',', '.') }}</td>
                                     <td class="px-4 py-2.5 text-right tabular-nums text-emerald-700">R$ {{ number_format($cmp['billing_paid'], 2, ',', '.') }}</td>
+                                    @endif
                                     <td class="px-4 py-2.5 text-right tabular-nums text-violet-700">R$ {{ number_format($cmp['instructor_total'], 2, ',', '.') }}</td>
                                     <td class="px-4 py-2.5 text-right tabular-nums text-emerald-700">R$ {{ number_format($cmp['instructor_paid'], 2, ',', '.') }}</td>
                                     <td class="px-4 py-2.5 text-right tabular-nums text-amber-700">R$ {{ number_format($cmp['instructor_pending'], 2, ',', '.') }}</td>
+                                    @if (!$instructorOnly)
                                     <td class="px-4 py-2.5 text-right tabular-nums font-semibold {{ $cmp['net'] >= 0 ? 'text-slate-900' : 'text-rose-600' }}">R$ {{ number_format($cmp['net'], 2, ',', '.') }}</td>
+                                    @endif
                                     @php
-                                        $diffCells = [
-                                            ['v' => $cmp['diff_billing'], 'p' => $cmp['diff_billing_pct'], 'invert' => false],
-                                            ['v' => $cmp['diff_instructor'], 'p' => $cmp['diff_instructor_pct'], 'invert' => true],
-                                            ['v' => $cmp['diff_instructor_paid'], 'p' => $cmp['diff_instructor_paid_pct'], 'invert' => false],
-                                            ['v' => $cmp['diff_net'], 'p' => $cmp['diff_net_pct'], 'invert' => false],
-                                        ];
+                                        $diffCells = $instructorOnly
+                                            ? [
+                                                ['v' => $cmp['diff_instructor'], 'p' => $cmp['diff_instructor_pct'], 'invert' => false],
+                                                ['v' => $cmp['diff_instructor_paid'], 'p' => $cmp['diff_instructor_paid_pct'], 'invert' => false],
+                                            ]
+                                            : [
+                                                ['v' => $cmp['diff_billing'], 'p' => $cmp['diff_billing_pct'], 'invert' => false],
+                                                ['v' => $cmp['diff_instructor'], 'p' => $cmp['diff_instructor_pct'], 'invert' => true],
+                                                ['v' => $cmp['diff_instructor_paid'], 'p' => $cmp['diff_instructor_paid_pct'], 'invert' => false],
+                                                ['v' => $cmp['diff_net'], 'p' => $cmp['diff_net_pct'], 'invert' => false],
+                                            ];
                                     @endphp
                                     @foreach ($diffCells as $d)
                                         <td class="px-4 py-2.5 text-right tabular-nums">
@@ -571,7 +647,8 @@
             </section>
 
             {{-- ====== Charts Row ====== --}}
-            <div class="grid gap-4 md:grid-cols-3">
+            <div class="grid gap-4 {{ $instructorOnly ? 'md:grid-cols-2' : 'md:grid-cols-3' }}">
+                @if (!$instructorOnly)
                 {{-- Distribution Doughnut --}}
                 <section class="rounded-3xl border border-slate-900/10 bg-slate-950 p-5">
                     <h3 class="text-sm font-semibold text-white">{{ __('Distribuição financeira') }}</h3>
@@ -579,16 +656,17 @@
                         <canvas id="distributionChart"></canvas>
                     </div>
                 </section>
+                @endif
                 {{-- Monthly Evolution --}}
                 <section class="rounded-3xl border border-slate-900/10 bg-slate-950 p-5">
-                    <h3 class="text-sm font-semibold text-white">{{ __('Evolução mensal (6 meses)') }}</h3>
+                    <h3 class="text-sm font-semibold text-white">{{ $instructorOnly ? __('Meus ganhos — evolução mensal (6 meses)') : __('Evolução mensal (6 meses)') }}</h3>
                     <div class="mt-3 h-[220px]">
                         <canvas id="moneyFlowChart"></canvas>
                     </div>
                 </section>
                 {{-- Range Growth --}}
                 <section class="rounded-3xl border border-slate-900/10 bg-slate-950 p-5">
-                    <h3 class="text-sm font-semibold text-white">{{ __('Evolução no período') }}</h3>
+                    <h3 class="text-sm font-semibold text-white">{{ $instructorOnly ? __('Meus ganhos no período') : __('Evolução no período') }}</h3>
                     <div class="mt-3 h-[220px]">
                         <canvas id="rangeGrowthChart"></canvas>
                     </div>
@@ -603,16 +681,19 @@
                 $histInstructor = array_merge($monthlyInstructorValues, array_fill(0, count($projectLabels), null));
                 $projInstructor = array_merge(array_fill(0, count($monthlyLabels), null), $projectInstructorValues);
             @endphp
+            @if (!$instructorOnly)
             <section class="rounded-3xl border border-slate-900/10 bg-slate-950 p-5">
                 <div class="flex items-center justify-between">
                     <h3 class="text-sm font-semibold text-white">{{ __('Projeção financeira') }}</h3>
                     <span class="text-[10px] text-slate-500">{{ __('Regressão linear sobre os últimos 6 meses') }}</span>
                 </div>
                 <div class="mt-3 h-[240px]">
-                    <canvas id="projectionChart"></canvas>
-                </div>
-            </section>
+                        <canvas id="projectionChart"></canvas>
+                    </div>
+                </section>
+                @endif
 
+                @if (!$instructorOnly)
             {{-- ====== Course Breakdown ====== --}}
             <section class="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-sm{{ $courseBilling->isEmpty() ? ' no-print' : '' }}">
                 <h3 class="text-sm font-semibold text-slate-900">{{ __('Receitas por curso') }}</h3>
@@ -696,19 +777,20 @@
                     </div>
                 @endif
             </section>
+            @endif
 
             {{-- ====== Instructor Payment Summary ====== --}}
             <div class="grid gap-3 sm:grid-cols-3">
-                <article class="rounded-2xl border border-rose-100 bg-rose-50/80 p-4">
-                    <p class="text-[10px] uppercase tracking-[0.15em] text-rose-600">{{ __('Total instrutores') }}</p>
-                    <p class="mt-1.5 text-2xl font-bold text-rose-700">R$ {{ number_format($rangeInstructorTotal, 2, ',', '.') }}</p>
+                <article class="rounded-2xl border border-violet-200 bg-violet-50/80 p-4">
+                    <p class="text-[10px] uppercase tracking-[0.15em] text-violet-600">{{ $instructorOnly ? __('A receber (período)') : __('Total instrutores') }}</p>
+                    <p class="mt-1.5 text-2xl font-bold text-violet-700">R$ {{ number_format($rangeInstructorTotal, 2, ',', '.') }}</p>
                 </article>
                 <article class="rounded-2xl border border-emerald-100 bg-emerald-50/80 p-4">
-                    <p class="text-[10px] uppercase tracking-[0.15em] text-emerald-600">{{ __('Já pago') }}</p>
+                    <p class="text-[10px] uppercase tracking-[0.15em] text-emerald-600">{{ $instructorOnly ? __('Instr. pago (período)') : __('Já pago') }}</p>
                     <p class="mt-1.5 text-2xl font-bold text-emerald-700">R$ {{ number_format($rangeInstructorPaidTotal, 2, ',', '.') }}</p>
                 </article>
                 <article class="rounded-2xl border border-amber-100 bg-amber-50/80 p-4">
-                    <p class="text-[10px] uppercase tracking-[0.15em] text-amber-600">{{ __('Pendente') }}</p>
+                    <p class="text-[10px] uppercase tracking-[0.15em] text-amber-600">{{ $instructorOnly ? __('A faltar (período)') : __('Pendente') }}</p>
                     <p class="mt-1.5 text-2xl font-bold text-amber-700">R$ {{ number_format($rangeInstructorPendingTotal, 2, ',', '.') }}</p>
                 </article>
             </div>
@@ -1032,12 +1114,14 @@
                 data: {
                     labels: cmp.map(r => r.label + (r.is_reference ? ' *' : '')),
                     datasets: [
+                        @if (!$instructorOnly)
                         {
                             label: @json(__('Faturado')),
                             data: cmp.map(r => r.billing_total),
                             backgroundColor: 'rgba(16, 185, 129, 0.72)',
                             borderRadius: 6,
                         },
+                        @endif
                         {
                             label: @json(__('Custo instr.')),
                             data: cmp.map(r => r.instructor_total),
@@ -1050,12 +1134,14 @@
                             backgroundColor: 'rgba(16, 185, 129, 0.45)',
                             borderRadius: 6,
                         },
+                        @if (!$instructorOnly)
                         {
                             label: @json(__('Resultado')),
                             data: cmp.map(r => r.net),
                             backgroundColor: 'rgba(14, 165, 233, 0.72)',
                             borderRadius: 6,
                         },
+                        @endif
                     ],
                 },
                 options: {
@@ -1110,16 +1196,18 @@
                 data: {
                     labels,
                     datasets: [
+                        @if (!$instructorOnly)
                         {
                             label: @json(__('Faturamento alunos')),
                             data: billing,
                             backgroundColor: 'rgba(16, 185, 129, 0.72)',
                             borderRadius: 6,
                         },
+                        @endif
                         {
-                            label: @json(__('Custo instrutores')),
+                            label: @json($instructorOnly ? __('Meus ganhos') : __('Custo instrutores')),
                             data: instructors,
-                            backgroundColor: 'rgba(244, 63, 94, 0.72)',
+                            backgroundColor: 'rgba(139, 92, 246, 0.72)',
                             borderRadius: 6,
                         },
                     ],
@@ -1148,6 +1236,7 @@
                 data: {
                     labels,
                     datasets: [
+                        @if (!$instructorOnly)
                         {
                             label: @json(__('Faturamento alunos')),
                             data: billing,
@@ -1157,8 +1246,9 @@
                             tension: 0.3,
                             pointRadius: 3,
                         },
+                        @endif
                         {
-                            label: @json(__('Custo instrutores')),
+                            label: @json($instructorOnly ? __('Meus ganhos') : __('Custo instrutores')),
                             data: instructors,
                             borderColor: '#f43f5e',
                             backgroundColor: 'rgba(244, 63, 94, 0.08)',
@@ -1181,6 +1271,7 @@
         })();
 
         // --- Projection chart ---
+        @if (!$instructorOnly)
         (function() {
             const labels = @json($combinedLabels);
             const histBill = @json($histBilling);
@@ -1237,6 +1328,7 @@
                 },
             });
         })();
+        @endif
     </script>
 
     <style>
