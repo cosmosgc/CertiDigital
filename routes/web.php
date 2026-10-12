@@ -33,6 +33,11 @@ Route::middleware('auth')->group(function () {
     // pages that any authenticated user can view
     Route::view('/certificates/emit', 'certificates.emit')->name('certificates.emit');
 
+    // AI chat with external LLM + MCP tools (tools filtered by role inside controller)
+    Route::get('/ai/chat', [\App\Http\Controllers\AiChatController::class, 'index'])->name('ai.chat.index');
+    Route::post('/ai/chat', [\App\Http\Controllers\AiChatController::class, 'chat'])->name('ai.chat');
+    Route::get('/ai/tools', [\App\Http\Controllers\AiChatController::class, 'tools'])->name('ai.tools');
+
     // administrative pages (only for users with the `admin` role)
     Route::middleware('role:admin')->group(function () {
         Route::get('/schedule-events/manage', [ScheduleEventController::class, 'manage'])->name('schedule-events.manage');
