@@ -38,6 +38,10 @@
                     class="rounded-xl border border-white/30 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20">
                     {{ __('Imprimir') }}
                 </button>
+                <a href="{{ route('financial.reports', array_merge(request()->query(), ['format' => 'json'])) }}"
+                    class="rounded-xl border border-emerald-300/40 bg-emerald-500/15 px-4 py-2 text-sm font-semibold text-emerald-100 hover:bg-emerald-500/25">
+                    {{ __('Exportar JSON') }}
+                </a>
             </form>
         </div>
     </x-slot>

@@ -124,7 +124,7 @@ class FinancialReportController extends Controller
         $instructorPaidTotal = (float) $instructorRows->sum('paid_amount');
         $instructorPendingTotal = max($instructorTotal - $instructorPaidTotal, 0);
 
-        $billingsForMonth = StudentBilling::with(['student', 'courseClass'])
+        $billingsForMonth = StudentBilling::with(['student', 'courseClass.course'])
             ->whereBetween('reference_month', [$monthStart->toDateString(), $monthEnd->toDateString()])
             ->when(count($excludedClassIds) > 0, fn($q) => $q->whereNotIn('course_class_id', $excludedClassIds))
             ->get();
@@ -470,6 +470,125 @@ class FinancialReportController extends Controller
         $hasStudentBilling = StudentBilling::exists();
         $instructorOnly = $mode === 'instructor'
             || ($mode !== 'full' && ! $hasStudentBilling);
+
+        if (strtolower((string) $request->query('format')) === 'json') {
+            $export = [
+                'schema_version' => 1,
+                'generated_at' => now()->toIso8601String(),
+                'currency' => 'BRL',
+                'filters' => [
+                    'month' => $referenceMonth->format('Y-m'),
+                    'start' => $rangeStart->format('Y-m'),
+                    'end' => $rangeEnd->format('Y-m'),
+                    'excluded_course_ids' => array_values(array_map('intval', $excludeCourses)),
+                    'excluded_class_ids' => array_values(array_map('intval', $excludeClasses)),
+                    'mode' => $mode,
+                ],
+                'month_summary' => [
+                    'billing' => [
+                        'total' => $billingTotal,
+                        'paid' => $billingPaid,
+                        'pending' => $billingPending,
+                        'overdue' => $billingOverdue,
+                        'canceled' => $billingCanceled,
+                    ],
+                    'instructors' => [
+                        'total' => $instructorTotal,
+                        'paid' => $instructorPaidTotal,
+                        'pending' => $instructorPendingTotal,
+                    ],
+                    'sessions' => (int) $instructorRows->sum('total_sessions'),
+                    'hours' => (float) $instructorRows->sum('total_hours'),
+                ],
+                'instructors' => $instructorRows->map(fn (array $row) => [
+                    'id' => $row['instructor']->id,
+                    'name' => $row['instructor']->full_name,
+                    'sessions' => (int) $row['total_sessions'],
+                    'hours' => (float) $row['total_hours'],
+                    'earnings' => (float) $row['total_earnings'],
+                    'payment_status' => $row['payment_status'],
+                    'paid_amount' => (float) $row['paid_amount'],
+                    'paid_at' => $row['payment']?->paid_at?->toIso8601String(),
+                    'courses' => collect($row['courses'])->map(fn (array $course) => [
+                        'id' => $course['course']?->id,
+                        'name' => $course['course']?->title,
+                        'payment_type' => $course['payment_type'],
+                        'contract_value' => $course['contract_value'],
+                        'sessions' => (int) $course['sessions'],
+                        'hours' => (float) $course['hours'],
+                        'earnings' => (float) $course['earnings'],
+                    ])->values(),
+                ])->values(),
+                'billing_items' => $billingsForMonth->map(fn (StudentBilling $billing) => [
+                    'id' => $billing->id,
+                    'student' => [
+                        'id' => $billing->student?->id,
+                        'name' => $billing->student?->full_name,
+                    ],
+                    'course' => [
+                        'id' => $billing->courseClass?->course?->id,
+                        'name' => $billing->courseClass?->course?->title,
+                    ],
+                    'class' => [
+                        'id' => $billing->course_class_id,
+                        'name' => $billing->courseClass?->name,
+                    ],
+                    'reference_month' => $billing->reference_month?->format('Y-m'),
+                    'due_date' => $billing->due_date?->toDateString(),
+                    'amount' => (float) $billing->amount,
+                    'status' => $billing->status,
+                    'paid_at' => $billing->paid_at?->toIso8601String(),
+                ])->values(),
+                'billing_by_class' => $classBilling,
+                'billing_by_course' => $courseBilling,
+                'range_summary' => [
+                    'start' => $rangeStart->format('Y-m'),
+                    'end' => $rangeEnd->format('Y-m'),
+                    'billing' => [
+                        'total' => $rangeBillingTotal,
+                        'paid' => $rangeBillingPaid,
+                        'pending' => $rangeBillingPending,
+                        'overdue' => $rangeBillingOverdue,
+                    ],
+                    'instructors' => [
+                        'total' => $rangeInstructorTotal,
+                        'paid' => $rangeInstructorPaidTotal,
+                        'pending' => $rangeInstructorPendingTotal,
+                    ],
+                ],
+                'month_comparison' => $monthComparison,
+                'interest_estimate' => [
+                    'as_of' => $interestAsOf->toDateString(),
+                    'principal_total' => $interestPrincipalTotal,
+                    'interest_total' => $interestTotal,
+                    'updated_total' => $interestUpdatedTotal,
+                    'months' => $interestComparison,
+                ],
+                'charts' => [
+                    'range' => [
+                        'labels' => $rangeLabels,
+                        'billing' => $rangeBillingValues,
+                        'instructors' => $rangeInstructorValues,
+                    ],
+                    'recent_months' => [
+                        'labels' => $monthlyLabels,
+                        'billing' => $monthlyBillingValues,
+                        'instructors' => $monthlyInstructorValues,
+                    ],
+                    'projection' => [
+                        'labels' => $projectLabels,
+                        'billing' => $projectBillingValues,
+                        'instructors' => $projectInstructorValues,
+                    ],
+                    'daily' => $heatmapDays,
+                    'daily_comparison' => $dailyCompareMonths,
+                ],
+            ];
+
+            return response()->json($export)
+                ->setEncodingOptions(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION)
+                ->header('Content-Disposition', 'attachment; filename="financial-report-' . $referenceMonth->format('Y-m') . '.json"');
+        }
 
         return view('financial.reports', [
             'referenceMonth' => $referenceMonth,
