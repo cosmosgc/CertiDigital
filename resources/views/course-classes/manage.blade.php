@@ -129,7 +129,7 @@
                     <hr class="mb-4 border-cyan-100">
                     <h4 class="text-sm font-semibold text-gray-900">{{ __('Próximas aulas previstas') }}</h4>
                     <p class="mt-1 text-xs text-gray-500">{{ __('Aulas da agenda que ainda não têm sessão de presença.') }}</p>
-                    <p class="mt-1 text-xs text-cyan-700">{{ __('Eventos recorrentes geram sugestões até a data final + 12 meses. Sem data final, valem 12 meses a partir de hoje — edite a data final abaixo para estender.') }}</p>
+                    <p class="mt-1 text-xs text-cyan-700">{{ __('Eventos recorrentes geram sugestões por até 12 meses após a data final (ou após hoje, se ela já passou). Sem data final, valem 12 meses a partir de hoje — edite a data final abaixo para estender.') }}</p>
                     <div id="upcomingClassesList" class="mt-3 grid gap-2"></div>
                 </div>
 
@@ -285,7 +285,28 @@ function parseDate(val) {
 }
 
 function fmtDate(date) {
-    return date.toISOString().slice(0, 10);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function addMonthsClamped(date, months) {
+    const result = new Date(date);
+    const day = result.getDate();
+    result.setDate(1);
+    result.setMonth(result.getMonth() + months);
+    const lastDayOfMonth = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
+    result.setDate(Math.min(day, lastDayOfMonth));
+    return result;
+}
+
+function getSuggestionWindowEndDate(event) {
+    const todayDate = parseDate(today);
+    const eventEndDate = event.end_date ? parseDate(event.end_date) : todayDate;
+    const baseDate = eventEndDate > todayDate ? eventEndDate : todayDate;
+
+    return addMonthsClamped(baseDate, 12);
 }
 
 function getEventOccurrences(event) {
@@ -293,12 +314,8 @@ function getEventOccurrences(event) {
     const dates = [];
 
     if (event.is_recurring_weekly && event.weekday !== null && event.weekday !== undefined) {
-        // Default suggestion window: end_date (if set) plus 12 months,
-        // or 12 months from today when end_date is empty (null).
-        const end = event.end_date
-            ? parseDate(event.end_date)
-            : parseDate(today);
-        end.setMonth(end.getMonth() + 12);
+        // Suggest through 12 months after the later of today or end_date.
+        const end = getSuggestionWindowEndDate(event);
 
         const current = new Date(start);
         while (current <= end) {
@@ -441,7 +458,7 @@ function populateAttendanceRecordOptions() {
         ${enrolledStudents
             .filter(enrollment => !presentStudentIds.has(String(enrollment.student_id)))
             .map(enrollment => `
-                <option value="${enrollment.student_id}">${enrollment.student?.full_name || ''} (${enrollment.student?.email || ''})</option>
+                <option value="${enrollment.student_id}">${escapeHtml(enrollment.student?.full_name || '')} (${escapeHtml(enrollment.student?.email || '')})</option>
             `).join('')}
     `;
 }
@@ -474,11 +491,10 @@ async function fetchClassData() {
     
     if (!res.ok) {
         console.error('Failed to fetch class data:', res.status);
-        return;
+        return false;
     }
 
     const data = await res.json();
-    console.log('Updated classData from API:', data);
     classData = data;
 
     if (!selectedAttendanceId && classData.attendances?.length) {
@@ -490,6 +506,7 @@ async function fetchClassData() {
     }
 
     renderClassData();
+    return true;
 }
 
 function getSelectedAttendance() {
@@ -505,7 +522,11 @@ function renderClassData() {
     displayPlannedHours();
     classDescription.textContent = classData.description || @json(__('Sem descrição cadastrada.'));
     studentCount.textContent = classData.enrollments?.length || 0;
-    console.log(classData.enrollments?.length || 0, 'enrollments loaded for class');
+    // Destroy before replacing rows so DataTables cannot restore stale cached rows.
+    if (studentsTable) {
+        studentsTable.destroy();
+        studentsTable = null;
+    }
     studentsTableBody.innerHTML = '';
 
     (classData.enrollments || []).forEach(enrollment => {
@@ -516,9 +537,9 @@ function renderClassData() {
         tr.innerHTML = `
             <td class="px-4 py-4 text-sm">${enrollment.id}</td>
             <td class="px-4 py-4">
-                <div class="font-semibold text-slate-900">${enrollment.student?.full_name || ''}</div>
+                <div class="font-semibold text-slate-900">${escapeHtml(enrollment.student?.full_name || '')}</div>
             </td>
-            <td class="px-4 py-4 text-sm text-slate-600">${enrollment.student?.email || ''}</td>
+            <td class="px-4 py-4 text-sm text-slate-600">${escapeHtml(enrollment.student?.email || '')}</td>
             <td class="px-4 py-4">
                 <div class="font-medium text-slate-900">${formatHours(progressHours)}</div>
                 <div class="mt-1 text-xs text-slate-500">${progressPercent}%</div>
@@ -540,13 +561,7 @@ function renderClassData() {
         studentsTableBody.appendChild(tr);
     });
 
-    // if (studentsTable && typeof studentsTable.destroy === 'function') {
-    //     studentsTable.destroy();
-    //     studentsTable = null;
-    // }
-
     studentsTable = new DataTable('#classStudentsTable');
-    console.log('Class data rendered and table initialized');
 
     renderStudentSearchResults(studentSearchInput.value);
     renderAttendanceList();
@@ -594,7 +609,7 @@ function attendanceCardHTML(attendance) {
         <article class="rounded-2xl border p-4 ${String(attendance.id) === String(selectedAttendanceId) ? 'border-cyan-500 bg-white shadow-sm' : 'border-cyan-100 bg-white/80'}">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                    <p class="text-sm font-semibold text-gray-900">${attendance.name}</p>
+                    <p class="text-sm font-semibold text-gray-900">${escapeHtml(attendance.name)}</p>
                     <p class="mt-1 text-sm text-gray-500">${formatSessionDate(attendance.attendance_date)} • ${formatHours(attendance.duration_hours)}</p>
                     <p class="mt-1 text-xs text-gray-500">{{ __('Presentes:') }} ${attendance.records?.length || 0}</p>
                 </div>
@@ -690,8 +705,8 @@ function renderSelectedAttendance() {
 
     attendanceRecordsTableBody.innerHTML = attendance.records.map(record => `
         <tr class="hover:bg-slate-50/80">
-            <td class="px-4 py-4">${record.student?.full_name || ''}</td>
-            <td class="px-4 py-4 text-sm text-slate-600">${record.student?.email || ''}</td>
+            <td class="px-4 py-4">${escapeHtml(record.student?.full_name || '')}</td>
+            <td class="px-4 py-4 text-sm text-slate-600">${escapeHtml(record.student?.email || '')}</td>
             <td class="px-4 py-4">
                 <button type="button" class="removeAttendanceRecordBtn rounded-lg bg-rose-500 px-3 py-2 text-sm text-white" data-id="${record.id}">
                     {{ __('Remover presença') }}
@@ -988,7 +1003,6 @@ attendanceRecordForm.addEventListener('submit', async (e) => {
 
 function renderUpcomingClasses() {
     const events = classData?.schedule_events || [];
-    console.log('[upcoming] schedule_events:', events);
     const existingDates = new Set((classData?.attendances || []).map(a => (a.attendance_date || '').slice(0, 10)));
     const section = document.getElementById('upcomingClassesSection');
     const list = document.getElementById('upcomingClassesList');
@@ -997,14 +1011,12 @@ function renderUpcomingClasses() {
     for (const event of events) {
         const duration = calculateEventDuration(event);
         const dates = getEventOccurrences(event);
-        console.log('[upcoming] event:', event.title || '(no title)', 'dates:', dates, 'recurring:', event.is_recurring_weekly, 'weekday:', event.weekday);
         for (const date of dates) {
             if (date >= today && !existingDates.has(date)) {
                 upcoming.push({ date, duration, title: event.title || null });
             }
         }
     }
-    console.log('[upcoming] filtered:', upcoming, 'today:', today, 'existingDates:', [...existingDates]);
     upcoming.sort((a, b) => a.date.localeCompare(b.date));
 
     if (!upcoming.length) {
@@ -1016,9 +1028,9 @@ function renderUpcomingClasses() {
     list.innerHTML = upcoming.map(item => `
         <div class="flex items-center gap-3 rounded-xl border border-cyan-100 bg-cyan-50/30 px-4 py-3 text-sm">
             <span class="shrink-0 rounded-md bg-cyan-100 px-2 py-1 text-xs font-semibold text-cyan-700">${formatSessionDate(item.date)}</span>
-            <span class="flex-1 font-medium text-gray-800">${item.title || formatSessionDate(item.date)}</span>
+            <span class="flex-1 font-medium text-gray-800">${escapeHtml(item.title || formatSessionDate(item.date))}</span>
             <span class="shrink-0 text-gray-500">${formatHours(item.duration)}</span>
-            <button type="button" class="createUpcomingBtn shrink-0 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700" data-date="${item.date}" data-duration="${item.duration}" data-title="${item.title || ''}">
+            <button type="button" class="createUpcomingBtn shrink-0 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700" data-date="${item.date}" data-duration="${item.duration}" data-title="${escapeHtml(item.title || '')}">
                 {{ __('Criar sessão') }}
             </button>
         </div>
@@ -1036,10 +1048,7 @@ const scheduleWeekdayLabels = [
 ];
 
 function suggestionWindowEnd(event) {
-    const base = event.end_date ? String(event.end_date).slice(0, 10) : today;
-    const end = parseDate(base);
-    end.setMonth(end.getMonth() + 12);
-    return fmtDate(end);
+    return fmtDate(getSuggestionWindowEndDate(event));
 }
 
 function renderScheduleEvents() {
@@ -1061,7 +1070,7 @@ function renderScheduleEvents() {
         const weekday = event.weekday ?? '';
         const windowNote = event.is_recurring_weekly
             ? (event.end_date
-                ? @json(__('Sugestões até')) + ' ' + formatSessionDate(suggestionWindowEnd(event)) + ' (' + @json(__('data final + 12 meses')) + ')'
+                ? @json(__('Sugestões até')) + ' ' + formatSessionDate(suggestionWindowEnd(event)) + ' (' + @json(__('12 meses após a data final ou hoje, se posterior')) + ')'
                 : @json(__('Sem data final: sugestões até')) + ' ' + formatSessionDate(suggestionWindowEnd(event)) + ' (' + @json(__('12 meses a partir de hoje')) + ')')
             : @json(__('Evento de data única'));
 
@@ -1129,7 +1138,7 @@ document.getElementById('scheduleEventsList')?.addEventListener('click', async (
     }
 
     const btn = e.target.closest('.saveScheduleEventBtn');
-    if (!btn) return;
+    if (!btn || btn.disabled) return;
 
     const get = (field) => card.querySelector(`[data-field="${field}"]`);
     const payload = {
@@ -1144,6 +1153,7 @@ document.getElementById('scheduleEventsList')?.addEventListener('click', async (
     };
 
     btn.disabled = true;
+    let saved = false;
     try {
         const res = await fetch(`{{ route("api.schedule-events.update", ["schedule_event" => "__ID__"]) }}`.replace('__ID__', card.dataset.eventId), {
             method: 'PUT',
@@ -1158,11 +1168,18 @@ document.getElementById('scheduleEventsList')?.addEventListener('click', async (
         });
 
         if (res.ok) {
-            await fetchClassData();
+            saved = true;
+            if (!await fetchClassData()) {
+                throw new Error('Failed to refresh class data after saving the schedule');
+            }
         } else {
             const error = await res.json().catch(() => null);
             alert(error?.message || @json(__('Erro ao salvar evento da agenda')));
         }
+    } catch (error) {
+        alert(saved
+            ? @json(__('Evento salvo, mas não foi possível atualizar as sugestões. Recarregue a página.'))
+            : @json(__('Não foi possível confirmar o salvamento do evento. Recarregue a página para verificar.')));
     } finally {
         btn.disabled = false;
     }
@@ -1170,30 +1187,54 @@ document.getElementById('scheduleEventsList')?.addEventListener('click', async (
 
 document.getElementById('upcomingClassesList')?.addEventListener('click', async (e) => {
     const btn = e.target.closest('.createUpcomingBtn');
-    if (!btn) return;
+    if (!btn || btn.disabled) return;
 
-    const res = await fetch(`{{ route("api.course-classes.attendances.store", ["course_class" => "__ID__"]) }}`.replace('__ID__', classId), {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': token,
-            'X-User-Id': currentUserId,
-            'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-            name: btn.dataset.title || null,
-            attendance_date: btn.dataset.date,
-            duration_hours: btn.dataset.duration || 1,
-            user_id: currentUserId
-        })
-    });
+    btn.disabled = true;
+    let created = false;
+    let canRetry = false;
+    try {
+        const res = await fetch(`{{ route("api.course-classes.attendances.store", ["course_class" => "__ID__"]) }}`.replace('__ID__', classId), {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': token,
+                'X-User-Id': currentUserId,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                name: btn.dataset.title || null,
+                attendance_date: btn.dataset.date,
+                duration_hours: btn.dataset.duration || 1,
+                user_id: currentUserId
+            })
+        });
 
-    if (res.ok) {
-        await fetchClassData();
-    } else {
-        const error = await res.json().catch(() => null);
-        alert(error?.message || '{{ __('Erro ao criar sessão') }}');
+        if (!res.ok) {
+            // A timeout or server error may occur after the session was committed.
+            canRetry = res.status >= 400 && res.status < 500 && res.status !== 408;
+            const error = await res.json().catch(() => null);
+            alert(canRetry
+                ? (error?.message || @json(__('Erro ao criar sessão')))
+                : @json(__('Não foi possível confirmar a criação da sessão. Recarregue a página antes de tentar novamente.')));
+            return;
+        }
+
+        created = true;
+        const attendance = await res.json().catch(() => null);
+        selectedAttendanceId = attendance?.id || selectedAttendanceId;
+        attendanceListExpanded = true;
+        attendanceList.classList.remove('hidden');
+        if (!await fetchClassData()) {
+            throw new Error('Failed to refresh class data after creating a session');
+        }
+    } catch (error) {
+        alert(created
+            ? @json(__('Sessão criada, mas não foi possível atualizar a página. Recarregue para ver a sessão.'))
+            : @json(__('Não foi possível confirmar a criação da sessão. Recarregue a página antes de tentar novamente.')));
+    } finally {
+        // Retry only after a definite rejection, not after an ambiguous failure.
+        btn.disabled = !canRetry;
     }
 });
 
